@@ -46,14 +46,15 @@ AF>5% common-variant list, 200 restarts, and `--no_umi` for ATAC. The output is
   Minimac4, and report its Rsq. Chunk-level QC on the server drops chunks with low
   call rate or low overlap with the reference panel, and sparse latent genotypes
   may fail it. Record how much of the genome survives.
-- **Panel choice.** This is an open decision.
-  - (a) The TOPMed server itself. This is the most faithful option. It means
-    uploading 1000G genotypes, which are public, so that's acceptable. Check
-    whether any 1000G samples are in the TOPMed panel; if they are, that would
-    leak truth into the imputation.
-  - (b) A local Minimac4 run with the 1000G 30x panel, **leaving out every donor
-    in the pool**. Without the leave-out, truth leaks into the panel. This option
-    is fully reproducible and scriptable.
+- **Panel (decided 2026-09-29).** Local Minimac4 on the NYGC 1000G 30x phased
+  panel (3,202 samples, SHAPEIT4). It is already on disk:
+  `demux_benchmark/pool_design/vcf/1000G/by_chrom/1000G.chr*.vcf.gz`, from
+  `ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/working/20220422_3202_phased_SNV_INDEL_SV/`.
+  Build a separate panel for each pool that leaves out the pool's donors **and
+  their 1000G relatives**. The 3,202 samples include 602 trios, so dropping only
+  the donors still leaks their haplotypes through parents and children; this
+  matters most for the adversarial_family pools. Eagle 2.4.1 genetic map:
+  `programs/Eagle_v2.4.1/tables/genetic_map_hg38_withX.txt.gz`.
 - **Genotype-likelihood-aware alternative.** Latent genotypes are really
   low-coverage allele counts, not hard calls. GLIMPSE2 or Beagle 4.1 in GL mode
   would use the counts directly and may do much better than Minimac4 on hard
