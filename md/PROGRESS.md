@@ -4,7 +4,7 @@
 
 - [x] Project scaffold, README, analysis plan (`docs/ANALYSIS_PLAN.md`)
 - [x] Lit review (`md/LITERATURE.md`), first pass 2026-09-29; still need the full text of Hartoularos 2023 and the other bioRxiv preprints (abstract-only so far)
-- [ ] **A03a souporcell**: job 14965122 (12 tasks: 4 n16 + 2 n8 pools × GEX/ATAC), submitted 2026-09-29
+- [ ] **A03a souporcell**: ATAC tasks from job 14965122; the GEX tasks failed on an empty-array bug under `set -u` (fixed) and were resubmitted as 14966956 (tasks 1-11:2)
 - [ ] Scoring notebook: cluster→donor matching, dosage r², NRC, site yield, depth curve
 - [ ] **A04a panel msav build**: job 14965520 (chr1-22, full 3,202-sample 1000G 30x panel → `reference/topmed/local_1000G_30x/`), submitted 2026-09-29
 - [ ] A04b prep targets (12 tasks), to run after A03a + A04a finish; the leave-pool-out lists were tested (n16 random rep1: 16 donors + 8 relatives excluded, 3,178 kept)

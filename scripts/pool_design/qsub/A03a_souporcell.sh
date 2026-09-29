@@ -69,6 +69,6 @@ fi
 time $SOUPORCELL -i "$BAM" -b "$BARCODES" -f "$FASTA" \
     -t "${NSLOTS:-1}" -o "$OUT" -k "$K" \
     --common_variants "$COMMON" \
-    --restarts 200 --skip_remap True "${EXTRA[@]}"
+    --restarts 200 --skip_remap True ${EXTRA[@]+"${EXTRA[@]}"}
 
 echo "End: $(date)  tree=$TREE pool=$POOL mod=$MOD"
