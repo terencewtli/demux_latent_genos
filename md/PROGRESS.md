@@ -11,6 +11,7 @@
 - [ ] A04c Eagle + Minimac4 v4.1.6 (264 tasks = 12 runs × 22 chr; QC sets `server` and `all`)
 - [ ] GLIMPSE2 on the GL field (A04b already writes it)
 - [ ] TOPMed server comparison through imputationbot (installed, token works, panel id `topmed-r3`). Leakage check first (see ANALYSIS_PLAN)
+- [ ] **TOPMed leakage test** submitted 2026-09-29: job-20260929-163357-077 (69 unique donors, true chr20 GTs, every 10th AF>5% SNV = 15,880 sites; hg38, eagle, r2Filter 0, meta). Password in `latent_genos/results/topmed_leakage/password.txt` (not in git). Next: download, then compare rare-variant r² against a local run with and without the donors in the panel
 - [ ] Re-demultiplex with latent / imputed genotypes (demuxlet, Alvarez 2025 method)
 - [ ] **Monopogen: to run; analysis plan TBD**
 - [ ] Low-pass WGS extension (later)
