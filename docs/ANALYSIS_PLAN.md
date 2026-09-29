@@ -55,6 +55,21 @@ AF>5% common-variant list, 200 restarts, and `--no_umi` for ATAC. The output is
   the donors still leaks their haplotypes through parents and children; this
   matters most for the adversarial_family pools. Eagle 2.4.1 genetic map:
   `programs/Eagle_v2.4.1/tables/genetic_map_hg38_withX.txt.gz`.
+- **Scripts.** `A04a` builds one msav per chromosome from the full panel. `A04b`
+  converts souporcell output: the GO field holds natural-log likelihoods in the
+  order 0/0, 1/1, 0/1, which are rewritten as log10 GL in VCF order; BACKGROUND
+  loci are dropped; sites must exactly match a panel site; then the two QC sets
+  (`server`: call rate >= 0.9 and not monomorphic; `all`: not monomorphic). It
+  also writes the leave-out lists (donors + parents, children and siblings from
+  the 3,202 pedigree). `A04c` runs Eagle against a per-pool leave-out reference
+  at the target sites, then minimac4 on the full msav with
+  `--sample-ids-file keep.txt`.
+- **TOPMed server leakage.** The r3 panel is 133,597 TOPMed WGS samples from
+  NHLBI cohort studies. I could not confirm from the docs whether any 1000G
+  samples are in it. Empirical check before trusting server results: submit the
+  donors' *true* genotypes thinned to array density, then look at r² for variants
+  that are rare in 1000G. Near-perfect recovery of donor-private variants would
+  mean the donors are in the panel.
 - **Genotype-likelihood-aware alternative.** Latent genotypes are really
   low-coverage allele counts, not hard calls. GLIMPSE2 or Beagle 4.1 in GL mode
   would use the counts directly and may do much better than Minimac4 on hard

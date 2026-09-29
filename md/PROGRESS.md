@@ -6,7 +6,11 @@
 - [x] Lit review (`md/LITERATURE.md`), first pass 2026-09-29; still need the full text of Hartoularos 2023 and the other bioRxiv preprints (abstract-only so far)
 - [ ] **A03a souporcell**: job 14965122 (12 tasks: 4 n16 + 2 n8 pools × GEX/ATAC), submitted 2026-09-29
 - [ ] Scoring notebook: cluster→donor matching, dosage r², NRC, site yield, depth curve
-- [ ] Imputation: choose TOPMed server vs local Minimac4 (1000G 30x, leave-pool-out); also GLIMPSE2 on allele counts
+- [ ] **A04a panel msav build**: job 14965520 (chr1-22, full 3,202-sample 1000G 30x panel → `reference/topmed/local_1000G_30x/`), submitted 2026-09-29
+- [ ] A04b prep targets (12 tasks), to run after A03a + A04a finish; the leave-pool-out lists were tested (n16 random rep1: 16 donors + 8 relatives excluded, 3,178 kept)
+- [ ] A04c Eagle + Minimac4 v4.1.6 (264 tasks = 12 runs × 22 chr; QC sets `server` and `all`)
+- [ ] GLIMPSE2 on the GL field (A04b already writes it)
+- [ ] TOPMed server comparison through imputationbot (installed, token works, panel id `topmed-r3`). Leakage check first (see ANALYSIS_PLAN)
 - [ ] Re-demultiplex with latent / imputed genotypes (demuxlet, Alvarez 2025 method)
 - [ ] **Monopogen: to run; analysis plan TBD**
 - [ ] Low-pass WGS extension (later)
