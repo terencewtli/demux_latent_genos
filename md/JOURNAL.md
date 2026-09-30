@@ -58,3 +58,13 @@ Script `scripts/A03b_souporcell_dosage_r2.py` (working copy in `latent_genos/scr
   - Per-pool leave-out reference panels (GLIMPSE2 cannot drop samples at run time) → chunk / split_reference → phase / ligate.
   - Scored with `lib/score_imputation.py`, plus typed-site r² comparable to A03b.
   - First test: n8 greedy GEX, chr20.
+
+## 2026-09-29 ~23:20: chr1 truncation confirmed in every pool truth VCF
+
+- All 130 pool VCFs (`pool_design/ambisim_final/vcf`, 126; `ambisim_n16/vcf`, 4) have **zero chr1 records past 190,673,377**, the exact point where the corrupt 1000G chr1 source stops reading. Table: `results/chr1_truncation_pool_vcfs.tsv` (chr1 > 190.7 Mb record count, plus chr2 first-58-Mb count as reference, ~159k).
+- chr22 ends normally (50,807,702) in the files checked; nothing else looks damaged.
+- **Impact:**
+  - ~58 Mb of chr1 (~2% of the genome, ~150k variants per pool VCF) is missing from truth.
+  - Scoring (A03b, and later A04 / GLIMPSE2) simply has no truth there, so no bias.
+  - Anything *generated* from these VCFs (donor selection metrics, simulated genotypes / reads) also lacks the chr1 tail. Check with the pool_design owner.
+- **Fix:** rebuild the pool VCFs' chr1 from the re-downloaded clean chr1 (`latent_genos/reference/1000G_30x/`, A04h) by subsetting to each pool's donors. Not done; the user decides.
