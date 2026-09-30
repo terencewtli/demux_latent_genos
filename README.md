@@ -1,5 +1,13 @@
 # Latent genotypes from genotype-free demultiplexing
 
+> **Known data issue (2026-09-29): chr1 past 190,673,377 is missing from every ambisim pool truth VCF and from the
+> simulated reads** (corrupt 1000G chr1 source; details in the pool_design repo's `docs/pipeline_issues.md`).
+> Decision: for the existing simulations the truncated `vcf/` files are the correct truth, because the reads were
+> simulated from them. Scoring against them simply has no truth past chr1:190.7 Mb (~2% of the genome), so those sites
+> drop out. Imputed dosages there are left unscored. Clean `vcf_fixed/` files exist for any re-simulation. This is
+> an exploration, so we proceed with it as is.
+
+
 Genotype-free demultiplexers such as souporcell cluster cells in a multiplexed
 single-cell pool. Along the way they infer a *latent genotype* for each cluster.
 How close are those latent genotypes to the donors' true genotypes? And can

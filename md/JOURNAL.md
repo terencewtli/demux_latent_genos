@@ -68,3 +68,12 @@ Script `scripts/A03b_souporcell_dosage_r2.py` (working copy in `latent_genos/scr
   - Scoring (A03b, and later A04 / GLIMPSE2) simply has no truth there, so no bias.
   - Anything *generated* from these VCFs (donor selection metrics, simulated genotypes / reads) also lacks the chr1 tail. Check with the pool_design owner.
 - **Fix:** rebuild the pool VCFs' chr1 from the re-downloaded clean chr1 (`latent_genos/reference/1000G_30x/`, A04h) by subsetting to each pool's donors. Not done; the user decides.
+
+## 2026-09-29 ~23:40: chr1 decision
+
+- ambisim simulates reads from the pool VCF genotypes, so the simulated donors carry no variants past chr1:190,673,377.
+- **Truth for all current analyses = the original truncated `vcf/` files** (internally consistent). The chr1 tail has no truth, so it is unscored for A03b, A04 (Minimac4) and GLIMPSE2.
+- Do **not** score against `vcf_fixed/`: it has true donor variants that the simulated reads never contained, which would unfairly penalize both souporcell and imputation.
+- The imputation panel chr1 (A04a) uses the clean re-download, so imputation near the boundary is not artificially starved.
+- `vcf_fixed/` is being built for all 266 pool VCFs (A04i, held on the chr1 download), for future re-simulation only.
+- The user will not regenerate the simulations (pool_design is now a simulation library). The issue is flagged in both repos' READMEs.
