@@ -1,8 +1,8 @@
 #!/bin/bash
 #$ -N A04a_build_panel_msav
 #$ -cwd
-#$ -l h_data=2G,h_rt=8:00:00
-#$ -pe shared 10
+#$ -l h_data=8G,h_rt=8:00:00
+#$ -pe shared 4
 #$ -t 1-22:1
 #$ -tc 20
 #$ -o /u/project/cluo/terencew/claude/project_ideas/pool_design/logs/A04a_build_panel_msav.$JOB_ID.$TASK_ID
@@ -35,7 +35,8 @@ TMP=/u/project/cluo_scratch/terencew/claude/latent_genos/A04a
 # ID=22
 ID=$SGE_TASK_ID
 CHR=chr$ID
-IN=$SRC/1000G.$CHR.vcf.gz
+# IN_OVERRIDE (qsub -v): alternative source VCF, e.g. the re-downloaded chr1 (the by_chrom chr1 copy is corrupt, gzip crc error)
+IN=${IN_OVERRIDE:-$SRC/1000G.$CHR.vcf.gz}
 MSAV=$PANEL/1000G_30x.$CHR.msav
 SITES=$PANEL/1000G_30x.$CHR.sites.vcf.gz
 

@@ -44,3 +44,17 @@ Script `scripts/A03b_souporcell_dosage_r2.py` (working copy in `latent_genos/scr
     - Rare variants: r² is low while concordance is high, because the truth is almost all hom-ref and a few false alt calls dominate r².
     - Common, het-rich sites: r² drops because a het needs both alleles seen, and at 1–2 reads it is often called hom (het undercalling).
 - Next: imputation (A04b / A04c, Minimac4 leave-pool-out) should mostly fix the het undercalling at low depth. A genotype-likelihood-aware imputer (GLIMPSE2 or Beagle GL mode, with GLs recomputed from the cluster AO / RO counts) is the natural comparison arm, since Minimac4 takes hard calls.
+
+## 2026-09-29 ~23:00: chr1 source corrupt; chr1 re-download; A04b / A04c submitted for 6 finished runs; GLIMPSE2 arm in progress
+
+- **The 1000G 30x chr1 source is corrupt.** `/u/project/cluo/terencew/demux_benchmark/pool_design/vcf/1000G/by_chrom/1000G.chr1.vcf.gz` (April 2022) fails `gzip -t` with a crc / length error. It has the same byte size as the EBI file (2,390,515,911), so the bytes were damaged after download.
+  - The A04a chr1 task failed ("Number of columns … 2221 vs 3202"). chr2–22 msav + sites built fine.
+  - **Knock-on:** pool truth VCFs built from these files stop at chr1:190,673,377, so they lack the last ~58 Mb of chr1 (~2% of the genome). For A03b this only means those sites were not scored. Check whether anything upstream of the ambisim pools (donor selection, read simulation) used this chr1 file.
+  - The demux_benchmark file is left untouched.
+- **Fix:** `qsub/A04h_download_chr1.sh` re-downloads chr1 from EBI into `latent_genos/reference/1000G_30x/` (size + full gzip -t + md5 recorded). A04a now accepts `IN_OVERRIDE` (qsub -v), and the chr1 A04a task is held on the download.
+- **A04b** (rows 1, 5, 7, 9, 11, 12; held on the chr1 A04a, since A04b needs all 22 sites files) → **A04c** (those rows × chr1–22, held on A04b). All at 8 GB × 4 slots.
+- **GLIMPSE2 arm (being built; agent):**
+  - GLs recomputed from the cluster AO / RO counts (binomial, e = 0.01).
+  - Per-pool leave-out reference panels (GLIMPSE2 cannot drop samples at run time) → chunk / split_reference → phase / ligate.
+  - Scored with `lib/score_imputation.py`, plus typed-site r² comparable to A03b.
+  - First test: n8 greedy GEX, chr20.
