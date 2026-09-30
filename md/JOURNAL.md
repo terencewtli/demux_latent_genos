@@ -77,3 +77,28 @@ Script `scripts/A03b_souporcell_dosage_r2.py` (working copy in `latent_genos/scr
 - The imputation panel chr1 (A04a) uses the clean re-download, so imputation near the boundary is not artificially starved.
 - `vcf_fixed/` is being built for all 266 pool VCFs (A04i, held on the chr1 download), for future re-simulation only.
 - The user will not regenerate the simulations (pool_design is now a simulation library). The issue is flagged in both repos' READMEs.
+
+## 2026-09-30 ~02:30: GLIMPSE2 arm works (chr20 test, run 11 = n8 greedy rep1 GEX)
+
+- **Built** (`scripts/pool_design/`; working copies in `pool_design/scripts/latent_genos/`):
+  - `lib/souporcell_to_gl.py`: PL recomputed from each cluster's AO / RO, binomial with e = 0.01, plus an optional ambient-aware model. Souporcell estimates 28% ambient RNA for this run.
+  - `qsub/A04f_glimpse_ref.sh`: per-pool leave-pool-out binary panels (13 samples excluded, 3,189 kept).
+  - `qsub/A04g_glimpse_impute.sh`: chunk → phase (`--impute-reference-only-variants`) → ligate.
+  - `lib/score_latent_imputation.py`.
+- **Truth** = the original pool VCF (MAF ≥ 5% SNVs only), so untyped scoring covers the 5–50% bin only.
+
+| chr20, mean over 8 donors | naive souporcell GT | GLIMPSE2 (binomial PL) | Minimac4 (hard calls) |
+|---|---|---|---|
+| typed sites (4,245) r² | 0.716 | **0.911** | 0.878 |
+| typed, 1–2 reads | 0.58 | 0.92 | |
+| typed, 3–5 reads | 0.68 | 0.93 | |
+| typed, > 10 reads | 0.875 | 0.857 | |
+| untyped MAF 5–50% (154,590 sites), aggregate r² | – | **0.524** | 0.453 |
+
+- **Reading:** imputation fixes the low-depth het undercalling, as expected. GLIMPSE2 with proper GLs beats Minimac4 on hard calls. At > 10 reads it is slightly below naive, probably ambient reads that the binomial model ignores. The ambient arm is written but untested.
+- **Cost** (1 core, chr20 → × ~39 for chr2–22):
+  - Panels: ~10 CPU-h and ~51 GB scratch per pool (~306 GB for 6 pools; scratch has 479 GB free, so build and consume pool by pool).
+  - Imputation: ~57 CPU-h per n8 run and ~115 per n16 run (~1,100 CPU-h for 12 runs).
+  - Minimac4 is ~12× faster.
+- **Bug found:** `lib/score_imputation.py` calls `bcftools query -m2 -v snps`. In bcftools 1.11, query's `-v` means `--vcf-list`, and the exit status is not checked, so it **silently scores 0 sites**. The A04e (TOPMed leakage calibration) scores are therefore invalid; fix and rerun. The new scorer avoids this.
+- GLIMPSE2 binaries run from executable copies in `cluo_scratch/.../latent_genos/bin`; b38 maps in `.../glimpse_maps/b38`.
