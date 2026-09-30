@@ -106,3 +106,27 @@ is in.
   souporcell's latent genotypes.
 - **Low-pass WGS.** Simulate 0.5–1x WGS for the pool donors, impute with
   GLIMPSE2, and ask whether it is enough for genotype-based demux.
+
+## Real-data validation cohorts (added 2026-09-30, user)
+
+The ambisim simulations cannot test the downstream *utility* of recovered genotypes: ambisim simulates reads from
+a reference dataset, so simulated expression is not driven by donor genotype. Any ASE / QTL claim needs real
+multiplexed data whose donors also have genotypes.
+
+| dataset | donors | access | use here |
+|---|---|---|---|
+| **Fibroblast → iPSC reprogramming, multiplexed 10x** (user's own) | **4** | **open access** | **the validation set.** Recover latent genotypes from the pooled reads, impute, and test **allele-specific expression** across the reprogramming time course against the donors' known genotypes. Small n, but open, so results and code can be shared without access restrictions. |
+| 51-line experiment (user's own) | 51 | **protected access** | **not used.** Many more pools, but the access restriction makes it unsuitable for an open exploration. Note it only as evidence that the design regime (tens of lines per pool) is real. |
+
+**Decision (user, 2026-09-30):** stick with the 4-donor open-access experiment.
+
+**What it enables that the simulations cannot:**
+- ASE from imputed latent genotypes vs ASE from true genotypes: how much of the allelic signal survives at
+  dosage r² ≈ 0.9?
+- The same question across a differentiation time course, where cell state changes but genotype does not, so the
+  genotype recovery can be checked for consistency across time points, an internal control the simulations lack.
+- A realistic ambient-RNA and doublet profile, rather than the fixed 20% ambient of the simulations.
+
+**Caveats:** 4 donors is a small pool, and the 8-donor simulations are already near-perfect for assignment, so
+this cohort tests genotype and ASE recovery, not demultiplexing difficulty. Pool-size effects stay in simulation
+(the Design A series in pool_design).
