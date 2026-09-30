@@ -22,6 +22,9 @@
 #   binom    (default) PL from cluster AO/RO, binomial, base error 0.01
 #   ambient  same, plus souporcell's ambient RNA fraction mixed in at the pooled
 #            site alt fraction (lib/souporcell_to_gl.py --ambient)
+# Optional GLIMPSE2_phase settings for cost tests: qsub -v ARM=binom,GOPTS="--burnin 2 --main 5",SUFFIX=_b2m5
+#   (commas inside -v values need care; for interactive tests export GOPTS/SUFFIX).
+#   Output then goes to <ARM><SUFFIX>/.
 #
 # Steps:
 #   1. chrN.target.bcf: lib/souporcell_to_gl.py -> sites whose CHROM/POS/REF/ALT
@@ -56,6 +59,8 @@ GBIN=$SCR/bin
 RES=/u/project/cluo/terencew/claude/project_ideas/latent_genos/results
 A03B=$RES/A03b_souporcell_dosage_r2
 ARM=${ARM:-binom}
+GOPTS=${GOPTS:-}
+SUFFIX=${SUFFIX:-}
 
 LIST=$PROJDIR/txt/latent_genos_souporcell_tasks.txt
 # ID=240
@@ -69,11 +74,11 @@ TAG=${TREE}__${POOL}__${MOD}
 SDIR=$PROJDIR/$TREE/$POOL/demux/souporcell/$MOD/$SAMPLE
 SOUP=$SDIR/cluster_genotypes.vcf
 REF=$SCR/glimpse_ref/${TREE}__${POOL}/$CHR
-OUT=$RES/A04g_glimpse_impute/$ARM/$TAG
-TMP=$SCR/A04g/$ARM.$TAG.$CHR
+OUT=$RES/A04g_glimpse_impute/$ARM$SUFFIX/$TAG
+TMP=$SCR/A04g/$ARM$SUFFIX.$TAG.$CHR
 N=${NSLOTS:-1}
 
-echo "Start: $(date)  host=$(hostname -s)  arm=$ARM tree=$TREE pool=$POOL mod=$MOD chr=$CHR slots=$N"
+echo "Start: $(date)  host=$(hostname -s)  arm=$ARM$SUFFIX gopts=[$GOPTS] tree=$TREE pool=$POOL mod=$MOD chr=$CHR slots=$N"
 
 if [ ! -e "$SDIR/consensus.done" ] || [ ! -s "$SOUP" ]; then
     echo "$(date): souporcell not finished ($SDIR), skipping"
@@ -110,7 +115,7 @@ else
             continue
         fi
         time "$GBIN/GLIMPSE2_phase_static" --input-gl "$TGT" --reference "$BIN" \
-            --impute-reference-only-variants --threads "$N" \
+            --impute-reference-only-variants --threads "$N" $GOPTS \
             --output "$TMP/chunk_$CIDX.bcf" --log "$TMP/chunk_$CIDX.log" > /dev/null
     done < "$REF/chunks.txt"
 

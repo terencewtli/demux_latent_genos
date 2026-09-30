@@ -102,3 +102,26 @@ Script `scripts/A03b_souporcell_dosage_r2.py` (working copy in `latent_genos/scr
   - Minimac4 is ~12× faster.
 - **Bug found:** `lib/score_imputation.py` calls `bcftools query -m2 -v snps`. In bcftools 1.11, query's `-v` means `--vcf-list`, and the exit status is not checked, so it **silently scores 0 sites**. The A04e (TOPMed leakage calibration) scores are therefore invalid; fix and rerun. The new scorer avoids this.
 - GLIMPSE2 binaries run from executable copies in `cluo_scratch/.../latent_genos/bin`; b38 maps in `.../glimpse_maps/b38`.
+
+## 2026-09-30 ~10:00: ambient-aware GLs are the best arm (chr20 test)
+
+Same test as before (run 11 = n8 greedy rep1 GEX, chr20), scored with `score_latent_imputation.py`. Mean over 8 donors:
+
+| | naive souporcell GT | GLIMPSE2 binomial | **GLIMPSE2 ambient** | binomial, fewer iters | Minimac4* |
+|---|---|---|---|---|---|
+| typed sites | 0.716 | 0.911 | **0.952** | 0.910 | 0.878 |
+| 1–2 reads | 0.580 | 0.916 | **0.952** | 0.911 | 0.803 |
+| 3–5 reads | 0.679 | 0.929 | **0.962** | 0.928 | 0.857 |
+| 6–10 reads | 0.791 | 0.937 | **0.965** | 0.936 | 0.908 |
+| > 10 reads | 0.875 | 0.857 | 0.926 | 0.858 | 0.971 |
+| untyped, MAF 5–50% | – | 0.524 | **0.538** | 0.515 | 0.453 |
+
+\* Minimac4 used A04b's monomorphic filter (4,112 vs 4,245 sites); its naive baseline on that set is 0.726.
+
+- The binomial arm's dip above 10 reads was **ambient RNA** (28% for this run); the ambient model recovers most of it. Minimac4 is still best at that depth only.
+- **The bug that blocked the first ambient attempt was not the model**: `GLIMPSE2_ligate` v2.0.0 has no `--log`. A04g now writes ligate output to a file and reuses finished chunks on rerun.
+- **Cost, and where it goes** (binomial, 1 thread, 89 min for chr20): 26 chunks × ~63k panel variants; ~95% of time is HMM imputation, 21 iterations at ~5.5 s, ~1,900 reference haplotypes. 4 threads → 33.5 min (2.65×), 1.8 CPU-h, 15 GB peak.
+- **Speedups:** `--burnin 2 --main 5` measured at 2.5× for a loss of 0.001 typed / 0.009 untyped r² — **recommended**. Untested: `--Kpbwt 1000` (~1.7–1.9×), panel restricted to MAF ≥ 1% SNVs (~2–2.5×, ~4× less disk), SNVs only (~1.15×).
+- **Full-run estimate** (12 runs × chr2–22): ~1,150–1,400 CPU-h at defaults, **~450–560 CPU-h with fewer iterations**; panels add ~63 CPU-h and ~306 GB scratch (479 GB free). At `-tc 40` (160 cores) that is roughly 4–6 h of compute, 6–10 h including queue waits.
+- **Not launched** — awaiting the go-ahead.
+- Still open: `score_imputation.py` scores 0 sites under bcftools 1.11 (`query -v` = `--vcf-list`), so A04e's leakage scores are invalid and need a rerun; chr1 waits on the rebuilt A04a sites file.
