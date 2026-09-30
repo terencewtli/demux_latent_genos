@@ -125,3 +125,17 @@ Same test as before (run 11 = n8 greedy rep1 GEX, chr20), scored with `score_lat
 - **Full-run estimate** (12 runs × chr2–22): ~1,150–1,400 CPU-h at defaults, **~450–560 CPU-h with fewer iterations**; panels add ~63 CPU-h and ~306 GB scratch (479 GB free). At `-tc 40` (160 cores) that is roughly 4–6 h of compute, 6–10 h including queue waits.
 - **Not launched** — awaiting the go-ahead.
 - Still open: `score_imputation.py` scores 0 sites under bcftools 1.11 (`query -v` = `--vcf-list`), so A04e's leakage scores are invalid and need a rerun; chr1 waits on the rebuilt A04a sites file.
+
+## 2026-09-30 ~15:20: full GLIMPSE2 run launched (user go-ahead)
+
+- **Arm:** ambient-aware GLs with `--burnin 2 --main 5` (`ARM=ambient`, `SUFFIX=_b2m5`) → `results/A04g_glimpse_impute/ambient_b2m5/`.
+  All 12 runs × chr1–22.
+- **A03b** (14983421, new wrapper `scripts/qsub/A03b_souporcell_dosage_r2.sh`): fills in assign.tsv for the 6 runs
+  that lacked it (the 5 ATAC runs + n16 random rep2 GEX). Scoring needs it.
+- **A04f panels,** one job per pool (`-tc 3` each, heavy I/O on the 1000G source): 14983422 / 24 / 26 / 29 / 31 / 33.
+- **A04g,** one job per pool covering its GEX + ATAC rows (`-tc 7` each; held on its pool's A04f + A03b):
+  14983423 / 25 / 28 / 30 / 32 / 34.
+- **Scratch:** ~306 GB of panels needed, 2.9 TB free; nothing is deleted.
+- **chr1:** the panel uses the clean A04h download (A04a chr1 sites rebuilt 09-30 03:45). Truth still ends at 190.67 Mb.
+- **Estimate:** ~450–560 CPU-h, roughly 6–10 h wall time.
+- **Still open:** the `score_imputation.py` bcftools-1.11 bug (A04e leakage scores invalid); the TOPMed leakage download.
