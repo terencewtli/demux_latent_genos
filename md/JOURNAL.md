@@ -139,3 +139,17 @@ Same test as before (run 11 = n8 greedy rep1 GEX, chr20), scored with `score_lat
 - **chr1:** the panel uses the clean A04h download (A04a chr1 sites rebuilt 09-30 03:45). Truth still ends at 190.67 Mb.
 - **Estimate:** ~450–560 CPU-h, roughly 6–10 h wall time.
 - **Still open:** the `score_imputation.py` bcftools-1.11 bug (A04e leakage scores invalid); the TOPMed leakage download.
+
+## 2026-09-30 ~22:45: TOPMed leakage results downloaded; score_imputation.py fixed; GLIMPSE2 progress
+
+- **TOPMed job-20260929-163357-077 downloaded** with imputationbot into `results/topmed_leakage/topmed/`; zip md5 OK.
+  Server QC: 13,350 / 14,374 sites kept (89.87% reference overlap), 0 strand flips, 1,017 monomorphic, 1,506 typed-only.
+- **`lib/score_imputation.py` fixed.** bcftools 1.11 `query` has no `-v` / `-m` / `-M` (`-v` is `--vcf-list`), and
+  the exit status was never checked, so the old version silently scored 0 sites.
+  - Site filters now go through `bcftools view`, piped to `query`.
+  - Any non-zero exit raises an error.
+  - The A04e local scores (all-zero) are left in place but are invalid.
+- **`qsub/A04j_leakage_score.sh`** (14983558, queued) scores all three chr20 imputations with the fixed scorer into
+  `results/topmed_leakage/scores_v2/`: TOPMed, local with_donors, local loo.
+- **GLIMPSE2 full run** (ambient_b2m5): 60 chromosome imputations done, 59 scored so far. About 26 A04g tasks
+  are running; 2 pools' panels are still queued.

@@ -25,12 +25,22 @@ MAF_BINS = [0, 0.001, 0.005, 0.01, 0.05, 0.5000001]
 LABELS = ['<0.1%', '0.1-0.5%', '0.5-1%', '1-5%', '5-50%']
 
 
-def query(cmd: List[str]) -> Iterator[List[str]]:
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True)
+def query(cmd: List[str], view: List[str] = None) -> Iterator[List[str]]:
+    """bcftools query, optionally behind a bcftools view filter. bcftools 1.11 query has no -v / -m / -M (its -v is
+    --vcf-list), so site filters go through view. Fails loudly on a non-zero exit (the old version silently
+    returned 0 sites; fixed 2026-09-30)."""
+    if view:
+        v = subprocess.Popen(view + ['-Ou'], stdout=subprocess.PIPE)
+        p = subprocess.Popen(cmd + ['-'], stdin=v.stdout, stdout=subprocess.PIPE, text=True)
+        v.stdout.close()
+    else:
+        v, p = None, subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True)
     assert p.stdout is not None
     for line in p.stdout:
         yield line.rstrip('\n').split('\t')
-    p.wait()
+    for proc in (p, v):
+        if proc is not None and proc.wait() != 0:
+            raise RuntimeError(f'bcftools failed ({proc.returncode}): {" ".join(view if proc is v else cmd)}')
 
 
 def gt_to_dosage(gt: str) -> float:
@@ -46,9 +56,9 @@ def read_ids(path: str, region: str) -> Set[str]:
 
 def read_dose(path: str, samples: List[str], region: str, typed: Set[str]) -> Dict[str, np.ndarray]:
     out: Dict[str, np.ndarray] = {}
-    cmd = ['bcftools', 'query', '-r', region, '-s', ','.join(samples), '-v', 'snps',
-           '-f', '%CHROM\t%POS\t%REF\t%ALT[\t%DS]\n', path]
-    for r in query(cmd):
+    view = ['bcftools', 'view', '-r', region, '-s', ','.join(samples), '-v', 'snps', path]
+    cmd = ['bcftools', 'query', '-f', '%CHROM\t%POS\t%REF\t%ALT[\t%DS]\n']
+    for r in query(cmd, view):
         vid = f'{r[0]}:{r[1]}:{r[2]}:{r[3]}'
         if vid in typed or len(r[2]) != 1 or len(r[3]) != 1:
             continue
@@ -81,9 +91,9 @@ def main() -> None:
 
     rows: List[Tuple] = []
     tru: Dict[str, np.ndarray] = {}
-    cmd = ['bcftools', 'query', '-r', a.region, '-s', ','.join(samples), '-m2', '-M2', '-v', 'snps',
-           '-f', '%CHROM\t%POS\t%REF\t%ALT\t%INFO/AF\t%INFO/AC[\t%GT]\n', a.truth]
-    for r in query(cmd):
+    view = ['bcftools', 'view', '-r', a.region, '-s', ','.join(samples), '-m2', '-M2', '-v', 'snps', a.truth]
+    cmd = ['bcftools', 'query', '-f', '%CHROM\t%POS\t%REF\t%ALT\t%INFO/AF\t%INFO/AC[\t%GT]\n']
+    for r in query(cmd, view):
         vid = f'{r[0]}:{r[1]}:{r[2]}:{r[3]}'
         if vid not in dose:
             continue
