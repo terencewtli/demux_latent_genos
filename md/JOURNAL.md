@@ -200,3 +200,18 @@ Same test as before (run 11 = n8 greedy rep1 GEX, chr20), scored with `score_lat
 - **ATAC imputes untyped sites much better than GEX** (0.74 vs 0.56), presumably because ATAC sites are spread
   genome-wide while GEX is restricted to expressed genes. Combining GEX + ATAC from the same multiome nuclei is an
   obvious next arm.
+
+## 2026-10-01 ~09:40: Minimac4 arm fixed and extended to all 12 runs
+
+- **State before:** A04c had run on 6 runs (those with A03b assignments on 09-29), 20 / 22 chromosomes each, in both
+  QC sets, with no genome-wide scoring.
+  - **chr1:** "VCF parse error" in Eagle. A04c built its leave-out phasing reference from the corrupt by_chrom chr1.
+    It now uses the clean A04h download, as A04f does. The chr1 msav was already rebuilt from it on 09-30.
+  - **chr15:** Minimac4 "not enough target variants". The first 20 Mb chunk (the acrocentric p-arm) has 0 / 18,679
+    typed sites. A04c now passes `--min-ratio-behavior skip`, so such chunks are skipped instead of failing.
+- **Resubmitted:** A04b 14988792 (all 12 rows; existing targets skip) → A04c 14988794 (264 tasks; existing doses
+  skip) → **A04k 14988795** (new `qsub/A04k_score_minimac4.sh`).
+- A04k scores both QC sets with the same scorer, truth and panel sites as GLIMPSE2, so the arms are directly
+  comparable. Output: `results/A04k_minimac4_score/<qc>/<tag>/`.
+- **The method comparison now rests on Minimac4 + GLIMPSE2** (local 1000G leave-pool-out). TOPMed would need donors
+  outside its panel.

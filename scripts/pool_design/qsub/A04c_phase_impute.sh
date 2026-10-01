@@ -39,6 +39,8 @@ module load bcftools
 PROJDIR=/u/project/cluo/terencew/claude/project_ideas/pool_design
 PANEL=/u/project/cluo/terencew/reference/topmed/local_1000G_30x
 SRC=/u/project/cluo/terencew/demux_benchmark/pool_design/vcf/1000G/by_chrom
+# chr1: the by_chrom copy is corrupt (gzip crc; VCF parse error in Eagle, 2026-10-01), use the clean EBI re-download (A04h)
+CHR1=/u/project/cluo/terencew/claude/project_ideas/latent_genos/reference/1000G_30x/1kGP_high_coverage_Illumina.chr1.filtered.SNV_INDEL_SV_phased_panel.vcf.gz
 EAGLE=/u/project/cluo/terencew/programs/Eagle_v2.4.1/eagle
 MAP=/u/project/cluo/terencew/programs/Eagle_v2.4.1/tables/genetic_map_hg38_withX.txt.gz
 MINIMAC4=/u/project/cluo/terencew/programs/build/Minimac4/build/minimac4
@@ -56,6 +58,8 @@ IMP=$PROJDIR/$TREE/$POOL/impute/$MOD
 KEEP=$IMP/loo/keep.txt
 EXCL=$IMP/loo/exclude.txt
 MSAV=$PANEL/1000G_30x.$CHR.msav
+IN=$SRC/1000G.$CHR.vcf.gz
+[ "$CHR" = chr1 ] && IN=$CHR1
 TMP=$TMPROOT/$TREE.$POOL.$MOD.$CHR
 N=${NSLOTS:-1}
 
@@ -92,7 +96,7 @@ for QC in server all; do
     # per-pool leave-out Eagle reference, restricted to the target's sites
     REF=$TMP/$QC.ref.bcf
     time bcftools view --threads "$N" -S "^$EXCL" --force-samples -T "$TGT" \
-        -m2 -M2 -v snps "$SRC/1000G.$CHR.vcf.gz" -Ob -o "$REF"
+        -m2 -M2 -v snps "$IN" -Ob -o "$REF"
     bcftools index -f "$REF"
 
     time $EAGLE --vcfRef "$REF" --vcfTarget "$TGT" --geneticMapFile "$MAP" \
@@ -105,7 +109,7 @@ for QC in server all; do
         -f GT,DS,HDS,GP,SD -a \
         -e "$OUT/$CHR.empirical.vcf.gz" \
         -o "$TMP/$QC.dose.vcf.gz" -O vcf.gz \
-        -t "$N" --temp-prefix "$TMP/m4_"
+        -t "$N" --temp-prefix "$TMP/m4_" --min-ratio-behavior skip
     mv "$TMP/$QC.dose.vcf.gz" "$DOSE"
     bcftools index -t -f "$DOSE"
     echo "$(date): [$QC] imputed $(bcftools index -n "$DOSE") sites"
