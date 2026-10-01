@@ -1,5 +1,17 @@
 # Progress
 
+## Status (2026-10-01)
+
+**Update 2026-10-01** (JOURNAL 10-01):
+- TOPMed leakage is **confirmed**: donor-private singletons r² 0.976 vs 0.35 left out. The current 1000G-based pools
+  cannot be used for a TOPMed comparison. The main arm (local 1000G leave-pool-out) is unaffected and leak-free.
+- GLIMPSE2 ambient_b2m5 full run: 215 / 264 done. The ligate-segment and AVX2 fixes are resubmitted (A04g 14988527).
+- **Decision pending (user):** whether to build a clean TOPMed arm. Plan, if yes:
+  1. leakage-test HGDP donors first (true chr20 genotypes thinned, as in A04d; no simulation needed);
+  2. only if clean, re-simulate a few EUR-like pools from HGDP donors with ambisim.
+  Watch-outs: the gnomAD HGDP+1KG joint callset also contains 1KG (use HGDP samples only), and HGDP itself may be in
+  TOPMed r3 (that is what the test checks).
+
 ## Status (2026-09-29)
 
 - [x] Project scaffold, README, analysis plan (`docs/ANALYSIS_PLAN.md`)
