@@ -3,6 +3,8 @@
 #$ -cwd
 #$ -l h_data=8G,h_rt=8:00:00
 #$ -pe shared 4
+# GLIMPSE2 static binaries need AVX2 (Illegal instruction on older nodes, 2026-10-01)
+#$ -l arch=intel-gold*|intel-E5-2650|intel-6736p
 #$ -t 1-264:1
 #$ -tc 20
 #$ -o /u/project/cluo/terencew/claude/project_ideas/pool_design/logs/A04g_glimpse_impute.$JOB_ID.$TASK_ID
@@ -119,14 +121,39 @@ else
             --output "$TMP/chunk_$CIDX.bcf" --log "$TMP/chunk_$CIDX.log" > /dev/null
     done < "$REF/chunks.txt"
 
-    ### 3. ligate
-    time "$GBIN/GLIMPSE2_ligate_static" --input "$TMP/ligate.txt" --output "$TMP/imputed.bcf" \
-        --threads "$N" > "$OUT/$CHR.ligate.log"
+    ### 3. ligate, in segments. GLIMPSE2_ligate refuses when three chunks overlap one position ("Three files
+    ### overlapping"), which --sequential chunking produces around centromeres / large gaps (chr1 ~125 Mb, chr22
+    ### ~27.8 Mb; 2026-10-01). Start a new segment wherever chunk i-1 and chunk i+1 overlap, ligate each segment,
+    ### then concatenate (ligate output is trimmed to the chunks' output regions, so segments do not overlap; phase
+    ### across a segment break is arbitrary, dosages are unaffected).
+    ### Ligate output still spans the chunks' INPUT (buffered) regions, so each segment is trimmed to the output
+    ### regions of its first..last chunk (column 4 of chunks.txt) before the concat.
+    awk -v d="$TMP" -v c="$CHR" 'BEGIN{seg=0} {s=$3; sub(/.*:/, "", s); split(s, r, "-"); st[NR]=r[1]; en[NR]=r[2];
+            o=$4; sub(/.*:/, "", o); split(o, q, "-"); os[NR]=q[1]; oe[NR]=q[2]; f[NR]=d "/chunk_" $1 ".bcf"}
+        END{for (i=1; i<=NR; i++) {if (i>2 && st[i] <= en[i-2]) seg++; sg[i]=seg; print f[i] > (d "/ligate_seg" sprintf("%03d", seg) ".txt")}
+            for (i=1; i<=NR; i++) {if (!(sg[i] in a)) a[sg[i]]=os[i]; b[sg[i]]=oe[i]}
+            for (k in a) print c ":" a[k] "-" b[k] > (d "/ligate_seg" sprintf("%03d", k) ".region")}' "$REF/chunks.txt"
+    : > "$OUT/$CHR.ligate.log"
+    : > "$TMP/segments.txt"
+    for L in "$TMP"/ligate_seg*.txt; do
+        time "$GBIN/GLIMPSE2_ligate_static" --input "$L" --output "${L%.txt}.full.bcf" --threads "$N" >> "$OUT/$CHR.ligate.log"
+        bcftools index -f "${L%.txt}.full.bcf"
+        bcftools view -r "$(cat "${L%.txt}.region")" "${L%.txt}.full.bcf" -Ob -o "${L%.txt}.bcf"
+        bcftools index -f "${L%.txt}.bcf"
+        echo "$(basename "$L" .txt) $(cat "${L%.txt}.region") $(bcftools index -n "${L%.txt}.bcf") sites" >> "$OUT/$CHR.ligate.log"
+        echo "${L%.txt}.bcf" >> "$TMP/segments.txt"
+    done
+    echo "$(date): ligated $(wc -l < "$TMP/segments.txt") segment(s)"
+    if [ "$(wc -l < "$TMP/segments.txt")" -eq 1 ]; then
+        mv "$(cat "$TMP/segments.txt")" "$TMP/imputed.bcf"
+    else
+        bcftools concat --naive -f "$TMP/segments.txt" -Ob -o "$TMP/imputed.bcf"
+    fi
     mv "$TMP/imputed.bcf" "$IMPUTED"
     bcftools index -f "$IMPUTED"
     cat "$TMP"/chunk_*.log > "$OUT/$CHR.phase.log"
     echo "$(date): imputed $(bcftools index -n "$IMPUTED") sites"
-    rm -f "$TMP"/chunk_* "$TMP/ligate.txt" "$TMP/raw.bcf" "$TMP/raw.bcf.csi"
+    rm -f "$TMP"/chunk_* "$TMP"/ligate_seg* "$TMP/segments.txt" "$TMP/ligate.txt" "$TMP/raw.bcf" "$TMP/raw.bcf.csi"
 fi
 
 ### 4. score

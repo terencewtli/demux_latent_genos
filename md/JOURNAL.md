@@ -153,3 +153,50 @@ Same test as before (run 11 = n8 greedy rep1 GEX, chr20), scored with `score_lat
   `results/topmed_leakage/scores_v2/`: TOPMed, local with_donors, local loo.
 - **GLIMPSE2 full run** (ambient_b2m5): 60 chromosome imputations done, 59 scored so far. About 26 A04g tasks
   are running; 2 pools' panels are still queued.
+
+## 2026-10-01 ~09:00: TOPMed leakage CONFIRMED; GLIMPSE2 full run at 215 / 264 (two bugs fixed); interim accuracy
+
+**TOPMed leakage test** (A04j, fixed scorer; chr20, 69 donors, 1 in 10 common SNVs as input):
+
+| group (not in the input) | TOPMed r3 | local panel WITH donors | local panel, donors + relatives left out |
+|---|---|---|---|
+| MAF < 0.1% | **0.983** | 0.876 | 0.536 |
+| 0.1–0.5% | 0.994 | 0.937 | 0.805 |
+| 1–5% | 0.998 | 0.966 | 0.910 |
+| 5–50% | 0.999 | 0.990 | 0.962 |
+| private to the 69 donors (in 1000G) | 0.999 | 0.986 | 0.953 |
+| **private singletons** | **0.976** (mean per site 0.997) | 0.781 | 0.349 |
+
+- Variants carried only by one donor within 3,202 1000G samples are imputed almost perfectly by TOPMed: better
+  than our panel that *contains* the donors, far above leave-out.
+- **The 1000G donors are in (or duplicated in) the TOPMed r3 panel.** The TOPMed arm is not usable for these
+  simulations. Local leave-pool-out stays the main arm.
+- A clean TOPMed comparison would need re-simulated pools from donors certainly absent from TOPMed (e.g. HGDP), and
+  even that would need its own leakage test.
+
+**GLIMPSE2 full run** (ambient_b2m5): 215 / 264 chromosome × run imputed and scored. Two failures, both fixed:
+1. **`GLIMPSE2_ligate`: "Three files overlapping"** on chr1 (~125 Mb centromere) and chr22 (~27.8 Mb) in all 12
+   runs.
+   - `--sequential` chunking makes chunk i−1 and i+1 input regions overlap there.
+   - `--recursive` fixes chr22 but not chr1 (tested on the sites files).
+   - **Fix in A04g:** split the ligate list wherever chunk i−1 and i+1 overlap, ligate each segment, trim it to its
+     chunks' output regions (ligate keeps the buffers), then `bcftools concat --naive`.
+   - Verified on final greedy rep1 GEX chr22: 2 segments (1–29.86 Mb, 29.86–50.8 Mb); typed r² 0.946.
+2. **"Illegal instruction"** in GLIMPSE2_split_reference (static AVX2 build) on older nodes: 5 panels in the two
+   ambisim_final pools (greedy chr3 / 11 / 14, random chr15 / 17). A04f / A04g now request
+   `-l arch=intel-gold*|intel-E5-2650|intel-6736p`.
+- Resubmitted: A04f 14988524 / 25 / 26 (5 panels) → A04g 14988527 (all 264; finished tasks skip, failed ones reuse
+  their completed chunks).
+
+**Interim accuracy** (mean over donors and scored chromosomes, 14–20 chromosomes per run):
+
+| | naive souporcell GT | GLIMPSE2 ambient, typed sites | untyped MAF 5–50% |
+|---|---|---|---|
+| ATAC runs (6) | 0.66–0.73 | 0.91–0.93 | **0.73–0.75** |
+| GEX runs (6) | 0.65–0.72 | 0.91–0.95 | **0.56** |
+| all 12 | 0.685 | 0.927 | 0.650 |
+
+- Typed-site r² is consistent with the chr20 test (0.95).
+- **ATAC imputes untyped sites much better than GEX** (0.74 vs 0.56), presumably because ATAC sites are spread
+  genome-wide while GEX is restricted to expressed genes. Combining GEX + ATAC from the same multiome nuclei is an
+  obvious next arm.

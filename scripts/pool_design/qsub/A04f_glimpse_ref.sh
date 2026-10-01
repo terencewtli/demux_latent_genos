@@ -3,6 +3,8 @@
 #$ -cwd
 #$ -l h_data=8G,h_rt=4:00:00
 #$ -pe shared 4
+# GLIMPSE2 static binaries need AVX2 (Illegal instruction on older nodes, 2026-10-01)
+#$ -l arch=intel-gold*|intel-E5-2650|intel-6736p
 #$ -t 1-132:1
 #$ -tc 20
 #$ -o /u/project/cluo/terencew/claude/project_ideas/pool_design/logs/A04f_glimpse_ref.$JOB_ID.$TASK_ID
