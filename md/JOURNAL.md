@@ -291,3 +291,47 @@ true_GT (pool_design demuxlet), souporcell `clusters.tsv`, and the three arms. T
   what cost in singlet over-calling.
 - The merged cluster cannot be rescued by imputation (as the plan predicted). Check how demuxlet on its
   latent / imputed genotypes splits those cells.
+
+## 2026-10-01 ~23:50: Minimac4 vs GLIMPSE2, genome-wide (A04l)
+
+Minimac4 (A04c Eagle + Minimac4 on souporcell hard calls, QC sets `all` and `server`) finished 264 / 264 and was
+scored by A04k with the same scorer, truth and panel as GLIMPSE2. Tables: `results/A04l_compare/{run,depth}.tsv`.
+Means are over runs.
+
+| | typed sites / donor | naive r² (own site set) | **typed r²** | **untyped MAF ≥ 5%** | concordance (called) |
+|---|---|---|---|---|---|
+| ATAC, GLIMPSE2 | 330k | 0.683 | **0.918** | **0.744** | 0.953 |
+| ATAC, Minimac4 all | 318k | 0.692 | 0.821 | 0.632 | 0.893 |
+| ATAC, Minimac4 server | 242k | 0.736 | 0.862 | 0.638 | 0.912 |
+| GEX, GLIMPSE2 | 195k | 0.685 | **0.938** | **0.561** | 0.965 |
+| GEX, Minimac4 all | 190k | 0.690 | 0.789 | 0.464 | 0.873 |
+| GEX, Minimac4 server | 92k | 0.753 | 0.867 | 0.471 | 0.917 |
+
+- **GLIMPSE2 wins in every run.**
+  - Typed sites: +0.05–0.19.
+  - Untyped sites: +0.07–0.13.
+- **The gap is largest in the n16 pools.** Minimac4 drops (all: 0.73–0.79 GEX, 0.79 ATAC) while GLIMPSE2 holds
+  (0.91–0.94). Hard calls from noisier, lower-depth clusters hurt Minimac4; GLIMPSE2 uses the genotype
+  likelihoods.
+- The `server` QC set keeps fewer, higher-quality sites (GEX 92k vs 190k). It raises Minimac4's typed r² but
+  barely moves untyped accuracy.
+- **Depth** (typed r², GLIMPSE2 / Minimac4 all):
+
+| reads | ATAC | GEX |
+|---|---|---|
+| 0 | 0.85 / 0.58 | 0.92 / 0.62 |
+| 1–2 | 0.89 / 0.71 | 0.94 / 0.72 |
+| 3–5 | 0.92 / 0.80 | 0.95 / 0.81 |
+| 6–10 | 0.95 / 0.89 | 0.95 / 0.87 |
+| > 10 | 0.94 / **0.97** | 0.92 / **0.94** |
+
+  - GLIMPSE2's advantage is all at low depth.
+  - **Above 10 reads Minimac4 is better**, and so are souporcell's naive calls (0.85–0.89). GLIMPSE2 slightly
+    over-smooths well-covered sites (the ambient dip).
+  - An obvious hybrid: keep the observed genotype where depth > 10 and the GLIMPSE2 posterior elsewhere. It is
+    untested.
+- **Decision for the real-data arm:** GLIMPSE2 (ambient GLs, b2m5) is the default imputation method. Minimac4 is
+  the comparison.
+- Not done: the exact-site matched untyped comparison (`untyped_matched.tsv`). It was too slow on the login node
+  (millions of sites × 264 files) and was stopped. Run it as a qsub job if needed; the per-donor aggregate above
+  already scores the same truth sites.
