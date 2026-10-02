@@ -178,8 +178,11 @@ Ranked by my sense of value per effort.
 
 ## Suggested order
 
+0. **NEXT (decided 2026-10-02): A06 fine-mapping / colocalization go/no-go test**, `docs/A06_FINEMAP_PLAN.md`.
+   It is a focused version of Tier 0 that uses real imputation error (emulated latent genotype likelihoods +
+   GLIMPSE2) and susieR / coloc. It decides whether there is a story before any simulator is built.
 1. Check OneK1K raw-read access (an hour). It changes everything downstream.
-2. Tier 0 plus the analytic n × r² prediction (days). This gives the baseline story.
+2. Tier 0 plus the analytic n × r² prediction (days). This gives the baseline story (largely covered by A06).
 3. Low-pass floor sweep on thinned 1000G 30x BAMs, plus joint GLIMPSE2 (a week). This is the experimentalist
    message.
 4. Tier 1 count-level simulator with ASE coupling (2–3 weeks). This is the circularity question, the main science.

@@ -64,6 +64,8 @@ This repo is now the umbrella for all latent-genotype ideas and for ideas on imp
 from latent genotypes (eQTL / ASE), low-pass WGS as a cheap identity and genotype source, simulators, and
 genotype-QC tools. The brainstorm and critique are in `docs/IDEAS.md`.
 
+> **Next step: A06, the eQTL fine-mapping / colocalization go/no-go test** (`docs/A06_FINEMAP_PLAN.md`).
+
 ## Layout
 
 | path | contents |
@@ -74,6 +76,7 @@ genotype-QC tools. The brainstorm and critique are in `docs/IDEAS.md`.
 | `md/LITERATURE.md` | Lit review: has this been done? |
 | `docs/ANALYSIS_PLAN.md` | Metrics, the imputation protocol, and pitfalls |
 | `docs/IDEAS.md` | Brainstorm: genetics with latent genotypes, low-pass WGS, simulator tiers, other ideas |
+| `docs/A06_FINEMAP_PLAN.md` | **Next step**: fine-mapping / coloc go/no-go test (design, metrics, cost) |
 | `docs/CONVENTIONS.md` | Paths, environments, script naming |
 | `scripts/pool_design/` | Scripts that live in and run from `project_ideas/pool_design/scripts/latent_genos/` |
 | `txt/` | Task lists |

@@ -1,5 +1,13 @@
 # Progress
 
+> **NEXT STEP (decided 2026-10-02): A06, the eQTL fine-mapping / colocalization go/no-go test.**
+> Plan: `docs/A06_FINEMAP_PLAN.md`.
+> - Does latent-genotype error (GEX / ATAC / multiome + GLIMPSE2) damage susieR fine-mapping and coloc, compared
+>   with true genotypes?
+> - 300 1000G EUR donors, 100 gene regions, a pseudobulk eQTL simulator.
+> - Estimate: ~75–225 CPU-h, ~3–4 working days.
+> - A Level A noise-injection smoke test comes first and gives a first answer on day 1.
+
 ## Status (2026-10-01)
 
 **Update 2026-10-01** (JOURNAL 10-01):
