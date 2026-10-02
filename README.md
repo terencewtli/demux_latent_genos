@@ -67,6 +67,7 @@ first.
 | `md/JOURNAL.md` | Dated log |
 | `md/LITERATURE.md` | Lit review: has this been done? |
 | `docs/ANALYSIS_PLAN.md` | Metrics, the imputation protocol, and pitfalls |
+| `docs/IDEAS.md` | Brainstorm: genetics with latent genotypes, low-pass WGS, simulator tiers, other ideas |
 | `docs/CONVENTIONS.md` | Paths, environments, script naming |
 | `scripts/pool_design/` | Scripts that live in and run from `project_ideas/pool_design/scripts/latent_genos/` |
 | `txt/` | Task lists |
