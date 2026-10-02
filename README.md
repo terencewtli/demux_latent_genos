@@ -58,6 +58,12 @@ both known. Most of the ~130 pools have 8 donors. The `ambisim_n16/` tree has
 16-donor pools, which is where souporcell should start to struggle, so those come
 first.
 
+## Scope (2026-10-02)
+
+This repo is now the umbrella for all latent-genotype ideas and for ideas on improving demultiplexing: genetics
+from latent genotypes (eQTL / ASE), low-pass WGS as a cheap identity and genotype source, simulators, and
+genotype-QC tools. The brainstorm and critique are in `docs/IDEAS.md`.
+
 ## Layout
 
 | path | contents |
