@@ -35,7 +35,7 @@ SOUPORCELL=/u/project/cluo/terencew/programs/souporcell/souporcell_pipeline.py
 FASTA=/u/project/cluo/terencew/reference/refdata-cellranger-arc-GRCh38-2020-A-2.0.0/fasta/genome.fa
 COMMON=/u/project/cluo/terencew/reference/cellsnp_db/hg38.AF5e2.possorted.chr_prefix.vcf
 
-LIST=$PROJDIR/txt/latent_genos_souporcell_tasks.txt
+LIST=${LIST:-$PROJDIR/txt/latent_genos_souporcell_tasks.txt}   # override with qsub -v LIST=...
 # ID=1
 ID=$SGE_TASK_ID
 read -r TREE POOL K MOD <<< "$(sed -n "${ID}p" "$LIST")"

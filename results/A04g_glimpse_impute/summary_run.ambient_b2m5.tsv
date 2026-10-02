@@ -1,0 +1,13 @@
+run	mod	pool_size	donors_matched	n_chrom	typed_sites_per_donor	untyped_maf5_per_donor	r2_naive_gt	r2_glimpse_typed	r2_glimpse_untyped_maf5	conc_naive	conc_glimpse_called
+ambisim_final__EUR_only__greedy_maxmin__rep1__atac	atac	8	8	22	321725	6547763	0.7311	0.9253	0.7423	0.8598	0.9613
+ambisim_final__EUR_only__greedy_maxmin__rep1__gex	gex	8	8	22	189860	6679624	0.7214	0.9457	0.5553	0.8315	0.9731
+ambisim_final__EUR_only__random__rep1__atac	atac	8	8	22	319696	6549791	0.7237	0.9231	0.7515	0.8581	0.9617
+ambisim_final__EUR_only__random__rep1__gex	gex	8	8	22	187535	6681949	0.7186	0.9447	0.5657	0.8316	0.973
+ambisim_n16__EUR_only__greedy_maxmin__n16_rep1__atac	atac	16	16	22	334284	6535204	0.6626	0.9163	0.7414	0.8089	0.9493
+ambisim_n16__EUR_only__greedy_maxmin__n16_rep1__gex	gex	16	16	22	197458	6672026	0.6711	0.9408	0.562	0.7844	0.966
+ambisim_n16__EUR_only__greedy_maxmin__n16_rep2__atac	atac	16	16	22	335316	6534172	0.6618	0.9169	0.7447	0.8085	0.9495
+ambisim_n16__EUR_only__greedy_maxmin__n16_rep2__gex	gex	16	16	22	198165	6671319	0.6736	0.9417	0.5645	0.7839	0.9661
+ambisim_n16__EUR_only__random__n16_rep1__atac	atac	16	16	22	333862	6535626	0.6601	0.9158	0.7443	0.8079	0.9491
+ambisim_n16__EUR_only__random__n16_rep1__gex	gex	16	15	22	197569	6671915	0.6545	0.9137	0.5571	0.7721	0.948
+ambisim_n16__EUR_only__random__n16_rep2__atac	atac	16	16	22	333591	6535897	0.6606	0.9137	0.7374	0.8079	0.9473
+ambisim_n16__EUR_only__random__n16_rep2__gex	gex	16	16	22	197239	6672245	0.673	0.9391	0.5613	0.7828	0.9652

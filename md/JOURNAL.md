@@ -215,3 +215,39 @@ Same test as before (run 11 = n8 greedy rep1 GEX, chr20), scored with `score_lat
   comparable. Output: `results/A04k_minimac4_score/<qc>/<tag>/`.
 - **The method comparison now rests on Minimac4 + GLIMPSE2** (local 1000G leave-pool-out). TOPMed would need donors
   outside its panel.
+
+## 2026-10-01 ~19:00: GLIMPSE2 ambient_b2m5 complete genome-wide (12 runs × chr1–22)
+
+All 264 run × chromosome imputations are done and scored (A04g 14988527, no errors). Summary tables:
+`results/A04g_glimpse_impute/summary_{run,depth,donor}.ambient_b2m5.tsv`. Means are weighted by sites over
+chromosomes. "Untyped" is scored only at MAF ≥ 5%: the panel-site scoring has 0 sites in the lower-MAF bins.
+
+| | naive souporcell GT | GLIMPSE2, typed sites | untyped MAF ≥ 5% | concordance naive → GLIMPSE2 (called sites) |
+|---|---|---|---|---|
+| ATAC (6 runs; ~330k typed sites / donor) | 0.683 | **0.918** | **0.744** | 0.825 → 0.953 |
+| GEX (6 runs; ~195k typed sites / donor) | 0.685 | **0.938** | **0.561** | 0.798 → 0.965 |
+
+- **Pool size:** n16 pools have a lower naive r² (0.66–0.67) than n8 (0.72–0.73). After imputation the gap mostly
+  closes (typed r² 0.914–0.942 vs 0.923–0.946).
+- **Untyped:** ATAC is better than GEX (0.74 vs 0.56) in every run, as in the interim numbers. ATAC has more typed
+  sites, spread genome-wide; GEX sites cluster in expressed exons.
+- **Depth** (typed r², GLIMPSE2 / naive):
+
+| reads | ATAC | GEX |
+|---|---|---|
+| 0 (imputed from neighbours only) | 0.852 / – | 0.916 / – |
+| 1–2 | 0.887 / 0.510 | 0.937 / 0.604 |
+| 3–5 | 0.923 / 0.647 | 0.948 / 0.699 |
+| 6–10 | **0.949** / 0.782 | 0.946 / 0.765 |
+| > 10 | 0.937 / 0.895 | 0.918 / 0.849 |
+
+  - Imputation gains most at 1–5 reads (+0.28 to +0.38).
+  - Above 10 reads, r² still dips in both modalities, so the ambient model removes only part of the high-depth
+    penalty. On chr20 Minimac4 was better at > 10 reads.
+- **The merged cluster** (n16 random rep1 GEX, c3 = HG00237 + HG00353) is the only outlier: typed 0.58, untyped
+  0.47. Imputation cannot repair a mixture, as expected. Every other donor in every run is at typed ≥ 0.90.
+- **Open:**
+  - rare-variant (MAF < 5%) accuracy on the real runs is unscored. The leakage test shows that is where panels
+    differ;
+  - Minimac4 A04c is at 169 / 264, then A04k scores it with the same scorer for the head-to-head.
+- **Next:** Step 3 (re-demux with true / latent / imputed genotypes), set up in the following entry.
