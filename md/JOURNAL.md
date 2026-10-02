@@ -251,3 +251,43 @@ chromosomes. "Untyped" is scored only at MAF ≥ 5%: the panel-site scoring has 
     differ;
   - Minimac4 A04c is at 169 / 264, then A04k scores it with the same scorer for the head-to-head.
 - **Next:** Step 3 (re-demux with true / latent / imputed genotypes), set up in the following entry.
+
+## 2026-10-01 ~19:30: Step 3 set up (re-demux with recovered genotypes); baselines say the gap is GEX doublets
+
+**Design** (`scripts/pool_design/qsub/A05a_demuxlet_latent.sh`, 12 tasks, one per run):
+- Three demuxlet arms on the **existing** pool_design pileups, so no new pileup is needed:
+  - `latent_GT`: souporcell hard calls;
+  - `imputed_GT` and `imputed_GP`: GLIMPSE2 ambient_b2m5, as hard calls and as posteriors (`--field GP`).
+- Samples are the souporcell clusters, mapped to donors with A03b `assign.tsv` at scoring time.
+- **Sites:** every arm is restricted (exact alleles) to the pileup sites. These are 1000G global AF ≥ 5% biallelic
+  SNPs, chosen without regard to who is in the pool (14% of chr22 sites are monomorphic in the n16 random rep1 pool).
+  So no arm gets truth-selected sites, and true_GT is an apples-to-apples ceiling.
+- Coverage on chr22 for n16 random rep1 GEX: latent covers 4,075 / 102,467 sites; imputed covers all 102,467.
+- souporcell leaves its FORMAT tags undeclared, which bcftools 1.11 cannot subset, so the latent VCF is built in awk
+  (GT only).
+- **ambisim_final greedy_maxmin rep1 has no pileup.** It was never demuxlet'd in pool_design, so it has no true_GT
+  baseline. Its 2 tasks exit; it is 10 / 12 runs unless a pileup is made.
+- Test: task 1 (n16 random rep1 GEX, the merged-cluster run) is job 15000307. Submit the other 11 after it checks
+  out.
+
+**Scoring** (`scripts/A05b_score_demux.py` → `results/A05b_score_demux/{summary,by_depth}.tsv`). Methods are
+true_GT (pool_design demuxlet), souporcell `clusters.tsv`, and the three arms. The baseline numbers are already in.
+
+| run (10 with a baseline) | best-guess accuracy, souporcell / true_GT | doublet recall, souporcell / true_GT | singlet recall, souporcell / true_GT |
+|---|---|---|---|
+| ATAC (5) | 0.999–1.000 / 0.998–1.000 | 0.989–1.000 / 0.989–0.998 | 0.999–1.000 / 0.89–0.92 |
+| GEX n8 random | 0.999 / 0.992 | 0.993 / 0.961 | 0.999 / 0.832 |
+| GEX n16 (4) | 0.937–1.000 / 0.982–0.986 | **0.80–0.84** / 0.95–0.96 | 0.937–1.000 / 0.77–0.81 |
+
+- **demuxlet with true genotypes over-calls doublets.** It calls ~20% of true GEX singlets DBL, yet its best guess is
+  right for 98–99% of them. It has no ambient model, and ambisim adds ambient. So singlet recall mostly measures
+  doublet calling. A05b adds `best_guess_acc` (best single-donor guess right, whatever the droplet call) to measure
+  genotype informativeness.
+- **souporcell already assigns singlets essentially perfectly** (≥ 0.999) in every run except n16 random rep1 GEX
+  (0.937, the merged cluster). There is almost no room for imputed genotypes to improve singlet assignment in these
+  simulations.
+- **The measurable gap is doublet detection in n16 GEX.** souporcell gets 0.80–0.84 vs 0.95–0.96 for demuxlet on
+  true genotypes. Step 3's real question is how much of that gap demuxlet on imputed genotypes recovers, and at
+  what cost in singlet over-calling.
+- The merged cluster cannot be rescued by imputation (as the plan predicted). Check how demuxlet on its
+  latent / imputed genotypes splits those cells.
