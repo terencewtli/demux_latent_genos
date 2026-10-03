@@ -7,6 +7,13 @@
 > - 300 1000G EUR donors, 100 gene regions, a pseudobulk eQTL simulator.
 > - Estimate: ~75–225 CPU-h, ~3–4 working days.
 > - A Level A noise-injection smoke test comes first and gives a first answer on day 1.
+>
+> **Update 2026-10-02 ~20:30: Level A done** (JOURNAL; `results/A06_finemap/level_a/`).
+> - eGene discovery is unaffected by imputed latent genotypes.
+> - Fine-mapping credible sets become small and miss the causal SNP, and colocalisation sensitivity drops
+>   (0.77 → 0.53 GEX / 0.67 multiome).
+> - All of this is likely inflated by Level A's independent per-SNP noise, which breaks LD.
+> - **Next: Level B** (GLIMPSE2 on emulated GLs), the same cohort and seeds.
 
 ## Status (2026-10-01)
 

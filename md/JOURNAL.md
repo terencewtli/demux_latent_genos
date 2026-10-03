@@ -335,3 +335,56 @@ Means are over runs.
 - Not done: the exact-site matched untyped comparison (`untyped_matched.tsv`). It was too slow on the login node
   (millions of sites × 264 files) and was stopped. Run it as a qsub job if needed; the per-donor aggregate above
   already scores the same truth sites.
+
+## 2026-10-02 ~20:30: A06 Level A smoke test (fine-mapping / coloc with noise-injected genotypes)
+
+Plan: `docs/A06_FINEMAP_PLAN.md`. Scripts `scripts/A06a_finemap_cohort.py`, `A06b_level_a_finemap.R` (qsub
+`scripts/qsub/A06b_level_a_finemap.sh`, job 15019949, 100 regions × 3 seeds) and `A06c_score_finemap.py`. Tables in
+`results/A06_finemap/level_a/`.
+
+**Setup:**
+- 300 unrelated 1000G EUR founders; 100 protein-coding genes on chr16–22, TSS ± 500 kb; MAF ≥ 5% (729–3,091 SNPs per
+  region).
+- Each donor carries the real per-site depth profile of a souporcell cluster (GEX and ATAC from the same real pool
+  donor; 78 profiles). Sites with reads: GEX 1.5–6%, ATAC 4–10%.
+- Arms are noise-injected at the measured accuracy per depth class:
+  - imputed arms: posterior-mean (Berkson) noise;
+  - naive arm: GEX hard calls at observed sites only, mean-imputed elsewhere.
+- Realized mean per-SNP r²: GEX 0.66, ATAC 0.82, multiome 0.83, naive 0.45.
+
+**Results: untyped (noncoding) causal SNP** (rates over 300 phenotypes; truth / GEX-imp / ATAC-imp / multiome /
+naive):
+
+| h² | eGene (Bonferroni) | causal in 95% CS | median CS size | lead SNP r² with causal |
+|---|---|---|---|---|
+| 0.05 | 0.49 / 0.50 / 0.58 / 0.57 / 0.08 | 0.24 / 0.02 / 0.04 / 0.06 / 0 | 52 / 6 / 25 / 20 / 2 | 0.61 / 0.51 / 0.60 / 0.59 / 0.19 |
+| 0.10 | 0.96 / 0.92 / 0.96 / 0.95 / 0.27 | 0.69 / 0.09 / 0.26 / 0.27 / 0 | 39 / 6 / 12 / 13 / 2 | 0.92 / 0.81 / 0.89 / 0.90 / 0.27 |
+| 0.20 | 1.00 / 1.00 / 1.00 / 1.00 / 0.36 | 0.98 / 0.22 / 0.44 / 0.43 / 0 | 19 / 3 / 5 / 5 / 2 | 0.96 / 0.92 / 0.95 / 0.94 / 0.29 |
+
+- **Colocalisation, shared causal (PP.H4 > 0.8):** truth 0.77; GEX 0.53, ATAC 0.66, multiome 0.67, naive 0.17.
+- **False colocalisation (distinct causal):** 0.09–0.13 in every arm, vs 0.13 under truth.
+- **Go/no-go (A06c):** every arm passes "GO".
+  - credible-set coverage drop: 0.30 (multiome) to 0.46 (naive);
+  - lead SNP on an observed site: 3.7× truth for GEX;
+  - colocalisation sensitivity change: 0.10–0.60.
+
+**Reading, with the key caveat:**
+1. **eGene discovery is essentially unaffected** for imputed arms (within a few points of truth at every h²), as
+   predicted. Skipping imputation (naive) is the real loss: eGene 0.27 vs 0.96 at h² = 0.10.
+2. **Fine-mapping looks badly hurt, in a specific way: credible sets become small and confident but miss the causal
+   variant.** The lead SNP is still in high LD with the causal (r² 0.81–0.95 vs 0.92–0.96), yet the 95% set shrinks
+   from 19–52 SNPs to 3–25 and excludes it. That is miscalibration, not lost signal.
+3. **This pattern is very likely exaggerated by Level A's independent per-SNP noise.**
+   - SNPs in near-perfect LD get *different* noise here, so susie can "tell them apart" by whichever is least noisy,
+     producing falsely small credible sets.
+   - Real imputation errors come from copying panel haplotypes, so tightly linked SNPs share their errors and LD is
+     largely preserved.
+   - Level A therefore cannot separate a real fine-mapping problem from an artefact of the noise model.
+4. **Decision:** do not draw conclusions from Level A. Run **Level B** (emulated GLs + GLIMPSE2; correlated, realistic
+   imputation error) on the same cohort, regions and phenotype seeds, so the arms are directly comparable. Level A
+   becomes the "independent error" reference that shows how much LD-coherent error matters.
+5. Multiome and ATAC are consistently better than GEX for fine-mapping and colocalisation. That ordering is likely
+   to survive Level B.
+
+**Next:** implement A06d (emulate allele counts + GLs from the same depth profiles, GLIMPSE2 against a leave-out panel,
+region-restricted) and rerun A06b / A06c with the Level B dosages.
