@@ -12,7 +12,7 @@
 # Fine-mapping: susieR (L = 10). Coloc (1-causal phenotypes): GWAS z ~ MVN(lambda R[, c], R) from the true-genotype
 # LD, either at the eQTL causal (shared) or at a different SNP with r2 0.3-0.8 to it (distinct); coloc.abf.
 # Output: <outdir>/<region>.tsv.gz, one row per phenotype x arm.
-# Usage: Rscript A06b_level_a_finemap.R <indir> <region> <outdir> [n_seeds=3]
+# Usage: Rscript A06b_level_a_finemap.R <indir> <region> <outdir> [n_seeds=3] [level=A|B]
 suppressPackageStartupMessages({
     library(susieR)
     library(coloc)
@@ -57,6 +57,17 @@ naive <- function() {
 }
 arms <- list(truth = G, gex_imp = posterior_arm(R2g), atac_imp = posterior_arm(R2a),
              multiome_imp = posterior_arm(pmax(R2g, R2a)), gex_naive = naive())
+# Level B (5th argument 'B'): imputed arms are the GLIMPSE2 dosages from emulated GLs (A06d / A06e), read from
+# <region>/imp_<arm>.tsv.gz; truth and gex_naive as in Level A. Phenotypes, GWAS and seeds are identical to Level A,
+# because they are reseeded per phenotype below.
+level <- if (length(args) >= 5) args[5] else 'A'
+if (level == 'B') {
+    for (a in c('gex', 'atac', 'multiome')) {
+        X <- rd_mat(paste0('imp_', a, '.tsv.gz')); storage.mode(X) <- 'double'
+        stopifnot(nrow(X) == n, ncol(X) == p)
+        arms[[paste0(a, '_imp')]] <- X
+    }
+}
 realized_r2 <- sapply(arms, function(X) mean(sapply(seq_len(p), function(j) suppressWarnings(cor(X[, j], G[, j]))^2), na.rm = TRUE))
 cat('realized mean per-SNP r2:', paste(names(realized_r2), round(realized_r2, 3), collapse = ' '), '\n')
 

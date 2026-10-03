@@ -388,3 +388,31 @@ naive):
 
 **Next:** implement A06d (emulate allele counts + GLs from the same depth profiles, GLIMPSE2 against a leave-out panel,
 region-restricted) and rerun A06b / A06c with the Level B dosages.
+
+## 2026-10-03 ~02:50: A06 Level B built and submitted (GLIMPSE2 on emulated latent-genotype GLs)
+
+- **A06d** (`scripts/A06d_emulate_targets.py`):
+  - Per test donor, at every site in its assigned real cluster's souporcell site list, alt reads ~ Binomial(real
+    cluster depth, p_g) with the A04g ambient model.
+  - ρ is the run's own souporcell ambient fraction: 0.21 ATAC, 0.31–0.32 GEX.
+  - GLs come from `lib/souporcell_to_gl.py` functions (identical to A04g). Multiome = GEX + ATAC counts summed.
+  - Regions or arms with no listed biallelic 1000G SNV (e.g. r009, pericentromeric chr16) get a `.none` marker and
+    no-information dosages (2 × AF).
+- **A06e** (`scripts/qsub/A06e_glimpse_regions.sh`):
+  - Region-restricted leave-out panel: 1000G 30x minus the 300 test donors and 88 relatives, 2,814 kept (245 EUR).
+  - GLIMPSE2_split_reference with input TSS ± 1 Mb and output TSS ± 500 kb (the binary is named after the INPUT
+    region; fixed after the first test).
+  - GLIMPSE2_phase b2m5 per arm, then `scripts/A06e_extract_ds.py`, which matches samples by name and SNPs by
+    POS:REF:ALT.
+  - Test on r002: 192 / 166 / 326 target sites (GEX / ATAC / multiome), 0 cohort SNPs missing from the output,
+    ~3 min per arm on 4 cores. Estimate for the full run: ~60 CPU-h.
+- **A06b** now takes a `level` argument. `B` reads `<region>/imp_<arm>.tsv.gz` for the imputed arms. Phenotypes, the
+  GWAS and the seeds are identical to Level A, because they are reseeded per phenotype, so A and B are directly
+  comparable.
+- **Submitted as one dependency chain:** A06d 15022575 → A06e 15022576 (100 tasks) → A06b level B 15022577 → A06c
+  15022579.
+  - Outputs: `cluo_scratch/.../latent_genos/A06/level_b_out/`;
+  - scored tables: `results/A06_finemap/level_b/`.
+- **Next session:** compare `results/A06_finemap/level_b/{summary,paired,coloc,gonogo}.tsv` with `level_a/`.
+  - The question is whether the small, causal-missing credible sets survive LD-coherent imputation error.
+  - Check `logs/A06e_glimpse_regions.15022576.*` for failed regions first.

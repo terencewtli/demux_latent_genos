@@ -14,6 +14,11 @@
 >   (0.77 → 0.53 GEX / 0.67 multiome).
 > - All of this is likely inflated by Level A's independent per-SNP noise, which breaks LD.
 > - **Next: Level B** (GLIMPSE2 on emulated GLs), the same cohort and seeds.
+>
+> **Update 2026-10-03:** the Level B chain is submitted and runs unattended.
+> - Jobs: A06d 15022575 → A06e 15022576 → A06b(B) 15022577 → A06c 15022579.
+> - Results land in `results/A06_finemap/level_b/`.
+> - Next session: compare with Level A (JOURNAL 10-03).
 
 ## Status (2026-10-01)
 
