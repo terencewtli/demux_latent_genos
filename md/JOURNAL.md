@@ -416,3 +416,67 @@ region-restricted) and rerun A06b / A06c with the Level B dosages.
 - **Next session:** compare `results/A06_finemap/level_b/{summary,paired,coloc,gonogo}.tsv` with `level_a/`.
   - The question is whether the small, causal-missing credible sets survive LD-coherent imputation error.
   - Check `logs/A06e_glimpse_regions.15022576.*` for failed regions first.
+
+## 2026-10-03 ~17:00: Level B vs Level A read; the "high r², low power" paradox was a reporting bug; OneK1K access
+
+- **Bug in A06c:** the summary's `realized_r2` uses `.first()` per arm, so it reports region r000 only (GEX 0.77). The
+  real mean over the 100 regions:
+
+| arm | Level A | Level B |
+|---|---|---|
+| GEX | 0.62 | **0.37** |
+| ATAC | 0.81 | 0.72 |
+| multiome | 0.81 | 0.74 |
+
+  Per-region table: `results/A06_finemap/level_b/realized_r2_by_region.tsv` (new file; existing outputs untouched).
+  **Fixed 2026-10-03:** A06c averages over regions and also reports the median (`realized_r2_median`). Reran
+  A06c for both levels (jobs 15029737 / 15029742); only those columns of `summary.tsv` change.
+  - Level B mean / median: GEX 0.369 / 0.409, ATAC 0.722 / 0.773, multiome 0.743 / 0.795.
+  - Level A: GEX 0.622, ATAC 0.805, multiome 0.813.
+  - **Naive r² fixed as well.** A06b dropped SNPs whose arm column is constant: naive mean-imputed sites and Level B
+    `.none` regions gave NaN correlations that `na.rm = TRUE` removed. A06b now counts them as r² = 0, over SNPs
+    polymorphic in the truth.
+  - A06b skips regions whose output already exists, so the reruns went to new directories,
+    `$scratch/latent_genos/A06/level_{a,b}_out_r2fix` (jobs 15031448 / 15031453, A06c 15031454 / 15031455). The
+    old `level_{a,b}_out` are untouched; the user can remove them.
+  - **Corrected realized r², mean / median across regions:**
+
+| arm | Level A | Level B |
+|---|---|---|
+| GEX imputed | 0.622 / 0.619 | 0.365 / 0.384 |
+| ATAC imputed | 0.805 / 0.805 | 0.715 / 0.773 |
+| multiome | 0.813 / 0.811 | 0.735 / 0.790 |
+| GEX naive | **0.034** / 0.027 (was 0.465) | 0.034 / 0.027 |
+
+  - Every fine-mapping metric is identical to the previous run (deterministic reseeding); only `realized_r2`
+    changed.
+  - `level_b/realized_r2_by_region.tsv` was computed from the pre-fix outputs; only the imputed arms of region r009
+    differ (NaN there, 0 now).
+- **Level B GEX quality is set by how many GEX-covered sites a ±500 kb window has.** Real cluster site lists are
+  used; r041 / r074 have 4 GEX sites vs 60–158 ATAC.
+  - eGene loss vs per-region r²: r = −0.69 (GEX).
+
+| GEX target sites | regions | r² B | eGene A | eGene B | causal in CS, A | causal in CS, B |
+|---|---|---|---|---|---|---|
+| ≤ 10 | 5 | 0.09 | 0.76 | 0.11 | 0.07 | 0.06 |
+| 11–50 | 9 | 0.18 | 0.75 | 0.36 | 0.10 | 0.09 |
+| 51–200 | 48 | 0.34 | 0.81 | 0.47 | 0.11 | 0.19 |
+| > 200 | 38 | 0.48 | 0.80 | 0.57 | 0.13 | 0.20 |
+
+- **Reading:**
+  - Level A assumed genome-average accuracy everywhere. Level B shows that GEX latent genotypes are only as good as
+    the expressed genes near the locus. That is a real property of GEX reads, not a simulator artefact.
+  - Both levels hurt fine-mapping vs truth, by different mechanisms:
+    - A: small, confident, wrong credible sets (an independent-noise artefact);
+    - B: inflated credible sets and lost eGenes where coverage is sparse.
+  - ATAC and multiome are much less affected.
+  - **Caveat:** A06d uses only the sites in souporcell's selected site list. A real pipeline could pile up all panel
+    SNPs covered by reads (cellsnp-lite), giving more sites, so B may understate the information.
+    Worth a sensitivity arm.
+- **OneK1K is usable for real data:**
+  - Raw 10x reads are public in SRA (GSE196830 → PRJNA807386, 75 runs, "pub", released 2022-04-10).
+  - Genotypes are open access on Zenodo 7619796 ("OneK1K pseudobulk eQTL dataset", K. Alasoo, CC-BY-4.0):
+    `OneK1K.noGP.vcf.gz` (12.7 GB), Minimac4-imputed from arrays, 1,098 samples, GRCh37 contigs, with
+    TYPED / IMPUTED flags and R2.
+  - The truth for scoring is therefore array-typed sites (TYPED / TYPED_ONLY); imputed truth carries its own error
+    (R2). onek1k.org only links summary statistics and points to a contact form for individual-level data.

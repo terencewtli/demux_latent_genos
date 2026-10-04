@@ -39,7 +39,10 @@ def main(indir: str, resdir: str) -> None:
     fm = d.drop_duplicates(KEYS + ['arm'])          # coloc rows duplicate the fine-mapping row
     g = fm.groupby(['arm', 'scenario', 'h2'])
     summ = g[METRICS].mean().join(g[METRICS].agg(se).add_suffix('_se')).join(g.size().rename('n_pheno'))
-    summ = summ.join(fm.groupby(['arm', 'scenario', 'h2'])['realized_r2'].first())
+    # realized_r2 is constant within region x arm (A06b computes it per region), so average over regions;
+    # Level B varies a lot by region (GEX site density), hence the median too
+    reg = fm.drop_duplicates(['region', 'arm', 'scenario', 'h2'])
+    summ = summ.join(reg.groupby(['arm', 'scenario', 'h2'])['realized_r2'].agg(realized_r2='mean', realized_r2_median='median'))
     summ.to_csv(f'{resdir}/summary.tsv', sep='\t')
 
     tr = fm[fm['arm'] == 'truth'].set_index(KEYS)[METRICS]

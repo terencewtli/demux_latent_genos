@@ -68,7 +68,13 @@ if (level == 'B') {
         arms[[paste0(a, '_imp')]] <- X
     }
 }
-realized_r2 <- sapply(arms, function(X) mean(sapply(seq_len(p), function(j) suppressWarnings(cor(X[, j], G[, j]))^2), na.rm = TRUE))
+# per-SNP r2 over SNPs polymorphic in the truth; an arm column that is constant there (no information, e.g. naive
+# mean-imputed sites or Level B '.none' regions) counts as r2 = 0 instead of being dropped as NaN
+poly <- which(apply(G, 2, function(g) var(g) > 0))
+realized_r2 <- sapply(arms, function(X) mean(sapply(poly, function(j) {
+    r <- suppressWarnings(cor(X[, j], G[, j]))
+    if (is.na(r)) 0 else r^2
+})))
 cat('realized mean per-SNP r2:', paste(names(realized_r2), round(realized_r2, 3), collapse = ' '), '\n')
 
 frac_obs_gex <- colMeans(CG >= 2); frac_obs_atac <- colMeans(CA >= 2)
