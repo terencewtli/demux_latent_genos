@@ -1,5 +1,9 @@
 # Progress
 
+> **Update 2026-10-06: A07 OneK1K real-data pilot submitted** (5 pools, GEX only; JOURNAL 10-06).
+> STARsolo → souporcell → GLIMPSE2 (full 1000G panel) → scored against OneK1K array-typed sites (hg38 liftover).
+> Jobs 15073118-15073127 (chained). Go/no-go: imputed typed-site r² ≳ 0.4 per donor → scale to 75 pools + real eQTL.
+>
 > **NEXT STEP (decided 2026-10-02): A06, the eQTL fine-mapping / colocalization go/no-go test.**
 > Plan: `docs/A06_FINEMAP_PLAN.md`.
 > - Does latent-genotype error (GEX / ATAC / multiome + GLIMPSE2) damage susieR fine-mapping and coloc, compared

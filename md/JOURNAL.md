@@ -480,3 +480,38 @@ region-restricted) and rerun A06b / A06c with the Level B dosages.
     TYPED / IMPUTED flags and R2.
   - The truth for scoring is therefore array-typed sites (TYPED / TYPED_ONLY); imputed truth carries its own error
     (R2). onek1k.org only links summary statistics and points to a contact form for individual-level data.
+
+## 2026-10-06: A07 OneK1K real-data pilot (5 pools, GEX only) submitted
+
+- **Why:** real-data check of the GEX latent-genotype + GLIMPSE2 arm, with the A06 question in mind
+  (real eQTL fine-mapping with ~980 donors if the pilot is good). OneK1K is 10x 3' v2 scRNA-seq (no
+  ATAC) of PBMCs: 75 pools in SRA (pools 40 and 66 absent), 9-18 donors per pool, 20 NovaSeq lanes per pool,
+  ~58 B reads / ~2.9 TB SRA total.
+- **Truth:** Zenodo 7619796 `OneK1K.noGP.vcf.gz` (Minimac4 v1.0.2, GRCh37, 1,098 samples `OneK1K_<n>`).
+  Only array-typed sites (INFO TYPED / TYPED_ONLY) are used as truth, lifted to hg38 with Picard. Imputed sites
+  are excluded: they carry their own error, and their errors are shared with ours because both imputations
+  lean on reference-panel LD.
+- **GEO extras** (per GSM): `*GenotypeSamples.txt` (pool donor list, IDs `682_683`) and `*Individual_Barcodes.csv`
+  (published per-cell donor calls). Which half of the GEO ID equals `OneK1K_<n>` is unknown, so A07g assigns
+  clusters to donors genetically against all 1,098 samples and reports which half matches. Per-cell
+  concordance with the published calls comes for free.
+- **Pools** (span donor count at similar depth, 680-871 M reads per pool): 70 (9 donors), 1 (12), 55 (14),
+  11 (17), 19 (18). `txt/onek1k_pilot_pools.txt`, `txt/onek1k_pilot_runs.txt` (100 runs).
+- **Pipeline** (`scripts/qsub/A07*`, logs in `latent_genos/logs/`, scratch `$SCR/A07/`):
+  - A07a: prefetch + fasterq-dump per run. _1 = I1 8 bp, _2 = R1 26 bp, _3 = R2 98 bp, checked on
+    SRR18028385. Only R1/R2 .gz are kept (~64 GB per pool).
+  - A07b: STARsolo, CellRanger-like v2 settings, hg38_igvf STAR index, `~/bin/STAR` 2.7.10a (the
+    `mapping` env has kb, not STAR).
+  - A07c: truth + GEO metadata + 737K-august-2016 whitelist (teichlab mirror).
+  - A07d: souporcell with the same settings as the simulation GEX arm (A03a): skip_remap, common variants,
+    200 restarts; k = GEO donor count.
+  - A07e: full (non-leave-out) 1000G 30x GLIMPSE2 panel. OneK1K donors are not in 1000G, so no leave-out.
+  - A07f: GLIMPSE2 ambient_b2m5, the same arm as the simulation headline (GEX typed r² 0.94).
+  - A07g: assignment + GEO checks + `score_latent_imputation.py` per chromosome, then a genome-wide
+    n-weighted per-donor summary.
+- **Jobs (2026-10-06):** A07a 15073118 · A07c 15073119 · A07e 15073122 · A07b 15073123 · A07d 15073125 ·
+  A07f 15073126 · A07g 15073127 (holds chained).
+- **Expected cost:** ~150-250 CPU-h per pool, ~1k CPU-h total. Scratch: ~320 GB fastq + ~300 GB BAMs.
+  The fastqs can be removed after A07b; the user deletes them.
+- **Go/no-go:** per-donor typed-site r² of imputed GEX genotypes. Around 0.4 or higher on real PBMC pools → plan
+  the 75-pool run plus real eQTL fine-mapping (the A06 question on real data).
