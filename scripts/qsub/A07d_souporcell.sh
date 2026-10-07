@@ -1,7 +1,7 @@
 #!/bin/bash
 #$ -N A07d_souporcell
 #$ -cwd
-#$ -l h_data=8G,h_rt=48:00:00
+#$ -l h_data=8G,h_rt=16:00:00
 #$ -pe shared 4
 #$ -t 1-5:1
 #$ -tc 5

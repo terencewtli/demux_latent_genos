@@ -576,3 +576,43 @@ part to change.
   transfer question.
 - Readouts: per-donor and per-variant r² by MAF and INFO; then (if time) eGene recovery on the pilot donors
   against OneK1K's published eQTLs.
+
+## 2026-10-07: A07h (read-based imputation arms) and A07i (cis-eQTL step) built; A07d runtime
+
+- **A07d souporcell:** `qalter` to h_rt 16 h (the 48 h request kept it queued). Running since 10:18 on all 5 pools.
+  Settings unchanged: `--skip_remap` with the 1000G AF > 5% common-variant list. Expected 6–14 h per pool.
+- **A07h, built** (chr6 + chr22 first):
+  - `A07h_split_bams.py`: per-group BAMs, primary reads with MAPQ 255 and a valid CB / UB, one read per
+    (CB, UB, start, strand). Two labellings:
+    - `soup`: souporcell singlets;
+    - `oracle`: GEO per-cell labels.
+  - **Gotcha [verified]:** GEO `Individual ID` is `<a>_<b>`, and both OneK1K_<a> and OneK1K_<b> are VCF samples
+    (9 / 9 in pool 70). The naming convention is therefore taken from A07g `assign.tsv`; oracle mode needs A07g.
+  - **Test, pool 70 chr22 oracle [verified]:** 15.2M reads scanned, 7.6M kept, 1.6M UMI duplicates, 2.3M from
+    unlabelled cells; 0.54–1.06M reads per donor.
+  - `qsub/A07h_glimpse_bam.sh`: GLIMPSE2 `--bam-list --fasta` against the A07e panel, b2m5, A07f ligation. One chunk
+    takes 30 s; GLIMPSE reports 0.38× mean coverage and ~95% of panel sites with no read.
+    - Test chunk, chr22:25.0–27.8 Mb: per-donor r² over all 857 array sites is 0.37, and INFO ≈ 1 everywhere
+      (uninformative with 9 samples).
+    - This is not comparable with scTAPAS's per-variant r² after an INFO filter, hence the per-variant scorer below.
+  - `qsub/A07h_quilt2.sh`: QUILT2, scTAPAS settings (diploid, nGen 100, 5 Mb chunks, 500 kb buffer), in stages
+    chunks → prep → impute → concat. `PANEL_SUBSET=EUR` is available if memory requires. Not yet tested: the
+    `quilt` conda env is installing.
+  - `A07h_score.py`: per-variant r² across all pilot donors (pooled over pools) by MAF and by expressed-gene
+    membership, plus per-donor r², for the arms A07f / bam_glimpse_{soup,oracle} / bam_quilt_{soup,oracle}.
+- **A07i, built:**
+  - `A07i_pseudobulk.py`: donor × cell-type pseudobulk from marker-score lineages. Pool 70: CD4T 50%, CD8T 17%,
+    NK 12%, B 11%, Mono 6%, other 3.5%.
+  - `A07i_eqtl.py`: tensorQTL `map_cis` (nperm 1000, 1 Mb, BH on pval_beta).
+    - Phenotypes: log CPM, inverse-normal; covariates: 5 expression PCs + pool.
+    - Every arm is compared with OneK1K's array-imputed genotypes (R2 ≥ 0.8) on identical donors and phenotypes:
+      eGene recovery, slope r², lead-variant LD.
+    - Then the fully genotype-free version (soup labels + soup arms).
+    - The `tensorqtl` env is installing.
+- **Submitted:** A07h_split 15092042 and A07i_pseudobulk 15092047 (both held on A07g); A07h_glimpse_bam 15092043
+  (held on the split). Still to submit: QUILT2 stages, A07h_score, A07i_eqtl.
+- **Context, for the record:**
+  - The 0.94 GEX r² is at souporcell-typed sites only. Untyped common sites are 0.56 GEX / 0.74 ATAC.
+  - Level B mean window r² was GEX 0.37, which is why GEX eGene discovery and fine-mapping both dropped in the
+    simulations.
+  - A07h tests whether all-reads imputation (scTAPAS-style) closes that gap on real 3' data.
