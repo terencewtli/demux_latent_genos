@@ -524,3 +524,55 @@ region-restricted) and rerun A06b / A06c with the Level B dosages.
   reads it. The double-lifted `onek1k.typed.hg38.vcf.gz`, `lifted.vcf.gz` and `lifted.reject.vcf.gz` are wrong and
   unused, left for the user to delete. The first A07c failure (job 15073119) was a wrong chain path.
 - Rerun A07c job: see PROGRESS; A07g's hold was updated to it.
+
+## 2026-10-06 (late): Kockelbergh 2026 (scTAPAS) half-scoops the eQTL use case; does it transfer to latent genotypes?
+
+**Paper** (bioRxiv 2026.09.30.755703, Luo lab Oxford; PDF in `reference/kockelbergh_2026/`). COMBAT 5' 10x v1.1
+PBMC scRNA-seq, 140 samples / 124 donors (102 with arrays used).
+- Pipeline:
+  1. Pools are demultiplexed with souporcell (`--skip_remap`, common variants = TOPMed-imputed GSA sites), and
+     clusters are matched to array genotypes by Pearson r. **This step uses known genotypes.**
+  2. Each donor's chr6 reads → one BAM.
+  3. QUILT2 (read-aware, 1000G 30x panel; nGen 100; ~4 h per chunk, 160 GB).
+  4. QC: INFO > 0.8, MAF > 5%, HWE → 76,833 chr6 SNVs.
+- Accuracy: per-variant dosage R² median 0.80 vs GSA / TOPMed. INFO_SCORE tracks concordance (R² 0.70-0.83).
+  Accuracy falls with fewer cells (log cells R² 0.70; < 500 cells fails) and for MAF < 5%. Variants in
+  blood-expressed genes pass QC far more often (β 2.6).
+- Downstream: cell-type cis-eQTL (TensorQTL, 6 cell types) recovers 68.6% of array cell-type-eGene pairs with 18%
+  of the variants; effect sizes agree (R² 0.94); scTAPAS-only eGenes are replicated in OneK1K (80%).
+  Ancestry assignment matches arrays 100%. HLA imputation from MHC SNVs (two-field R² 0.59; beats arcasHLA for
+  class I, loses for class II); HLA-DRB1*03 → TRAV12-2 in CD4 T cells.
+- Their stated limits: 5' only, so **3' untested**; chr6 only; common variants only; ancestry representation;
+  linear-reference bias.
+
+**What that takes from us, and what it doesn't**
+- Taken: "imputed scRNA genotypes are good enough for eQTL discovery" on real data. Our A06 Level A/B framing
+  ("is it useful downstream?") is now partly answered for **common-variant eGene discovery from 5' scRNA**.
+- Not taken:
+  1. Genotype-free end to end. They label donors with arrays before imputing. In a cohort with no genotypes,
+     clusters are anonymous, so demux errors (doublets, mis-assigned cells, ambient) flow straight into the per-donor
+     BAMs. That is our setting; whether souporcell latent assignment is clean enough is the transfer question.
+  2. Input representation. They impute from all reads (QUILT2 on BAM, every panel site covered). Our A04g / A06d
+     impute from souporcell's cluster AO/RO at **souporcell's common-variant site list only** (the A06 Level B
+     caveat). Their result suggests we have been throwing away most of the information.
+  3. 3' chemistry (their open limitation) is exactly OneK1K, our A07 pilot.
+  4. ATAC / multiome; per-donor accuracy curves vs depth, donors and ambient; fine-mapping and coloc quality
+     (A06 found these, not eGene discovery, are what degrade); re-demultiplexing; genome-wide.
+
+**Does it transfer to souporcell latent genotypes? Expectation:** mostly yes, because souporcell singlets are
+already ~perfect in our simulations (step 3 baselines). The per-cluster BAM is then nearly the per-donor BAM they
+use, and labels are irrelevant to imputation. The risks are doublet / ambient leakage and n16 GEX, where we saw
+weaker clustering. What *won't* transfer automatically is our current input (souporcell sites only); that is the
+part to change.
+
+**Plan A07h** (OneK1K pilot, after A07d):
+- Split the STARsolo BAM by souporcell singlet cluster → per-cluster BAMs.
+- Impute three ways against the same full 1000G 30x panel and score at the same OneK1K array-typed sites:
+  - (i) current A07f: GLIMPSE2 from souporcell-site GLs;
+  - (ii) GLIMPSE2 `--bam-list` on the per-cluster BAM (GLs at every panel site covered by reads);
+  - (iii) QUILT2 on the per-cluster BAM (their method; bioconda r-quilt, ~160 GB per chunk, so chr22 / chr6 first).
+- Plus (iv) an "oracle-labelled" version: cells assigned with OneK1K's published GEO per-cell donor labels instead
+  of souporcell clusters. (iv) vs (ii)/(iii) isolates the cost of genotype-free demultiplexing, which is the
+  transfer question.
+- Readouts: per-donor and per-variant r² by MAF and INFO; then (if time) eGene recovery on the pilot donors
+  against OneK1K's published eQTLs.

@@ -8,6 +8,14 @@ Legend: **[V]** = the paper exists and the claim was checked against the abstrac
 
 ## Bottom line: has this been done?
 
+> **Update 2026-10-06: Kockelbergh et al. 2026 (bioRxiv 2026.09.30.755703, Yang Luo lab, Oxford; "scTAPAS") half-scoops
+> the downstream use.** They aggregate each donor's 5' scRNA-seq reads (COMBAT, ~100 donors, 10x v1.1, PBMC), run
+> QUILT2 (read-aware imputation from BAMs, 1000G 30x panel), and show the genotypes support cell-type eQTL mapping:
+> 68.6% of array cell-type-eGene pairs recovered with 18% of the variants, effect-size R² 0.94, ancestry PCs 100%
+> concordant, plus HLA imputation and HLA-TCR associations. Chr6 only. **Their donor BAMs come from souporcell
+> clusters matched to array genotypes**, so the latent clusters are labelled with known genotypes, and the loop
+> "latent genotypes → imputation → re-demultiplex" is still not done. See the threats table and JOURNAL 2026-10-06.
+
 **(b) Imputing latent genotypes with a reference panel and then re-demultiplexing: I found no evidence it has been done.** No paper, preprint, GitHub issue or forum post I found feeds souporcell `cluster_genotypes.vcf`, vireo `GT_donors.vireo.vcf`, freemuxlet or scSplit cluster genotypes into Minimac4/TOPMed, Beagle, GLIMPSE or IMPUTE5 and then runs demuxlet, vireo-with-genotypes or ambimux on the result.
 
 Searches that came back empty:
@@ -200,6 +208,7 @@ The only step our idea adds is running this on *per-cluster pseudo-bulk from a g
 
 | Work | Why it is a threat | Why it does not scoop us |
 |---|---|---|
+| **Kockelbergh 2026** (bioRxiv; scTAPAS: per-donor scRNA BAM → QUILT2 → sc-eQTL + HLA) | Real-data proof that imputed scRNA-derived genotypes support cell-type eQTL mapping (68.6% of eGenes, effect R² 0.94) and ancestry PCs; this was the A06 "is it useful downstream" question. | Donors are identified with array genotypes (souporcell clusters matched by Pearson r to GSA calls), so the pipeline is not genotype-free. 5' chemistry only (they flag 3' as untested), chr6 only, common variants only (INFO > 0.8, MAF > 5%; per-variant r² ~0.80), no fine-mapping or coloc, no ATAC or multiome, no re-demultiplexing, no latent-genotype accuracy curve vs depth or donors. |
 | **Monopogen** (Dou 2024 *Nat Biotech*) | Same core mechanic: pooled single-cell reads → GLs → LD/panel refinement → >95% accuracy. Someone could apply it per cluster in a weekend. | One sample per library; never demultiplexing; no re-demultiplexing loop; no evaluation with pooled or ambient-contaminated data. |
 | **Mu et al. 2026** (*Cell Genomics*, GLIMPSE on aggregated scATAC) | Proves the imputation step works on single-cell pseudo-bulk and validates against array+Minimac4. | Individually processed donors, not latent clusters; genotypes used for caQTL mapping, not fed back into demultiplexing. |
 | **Demuxalot (refined)** (Rogozhnikov 2021; best method in Demuxafy) | An existing, well-benchmarked "refine genotypes then re-demultiplex" loop. | Requires known genotypes to start; refines from data only, with no reference panel, no LD and no imputation of unobserved sites; cannot start from a genotype-free pool. |
