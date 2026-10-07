@@ -1,5 +1,5 @@
 """OneK1K pilot scoring for one pool: souporcell clusters -> OneK1K donors, then latent / imputed genotype
-accuracy against the array-typed truth (A07c), using the simulation scorer per chromosome.
+accuracy against the array-typed truth (A07c), using the simulation scorer (truth = array-typed GRCh38 sites) per chromosome.
 
 Steps:
   1. assign: Pearson r between each cluster's souporcell hard-call dosage and every one of the 1,098
@@ -30,7 +30,7 @@ PROJ = '/u/project/cluo/terencew/claude/project_ideas/latent_genos'
 LIB = '/u/project/cluo/terencew/claude/project_ideas/pool_design/scripts/latent_genos/lib'
 SCR = '/u/project/cluo_scratch/terencew/claude/latent_genos/A07'
 PANEL = '/u/project/cluo/terencew/reference/topmed/local_1000G_30x'
-TRUTH = f'{SCR}/truth/onek1k.typed.hg38.vcf.gz'
+TRUTH = f'{SCR}/truth/onek1k.typed.b38.vcf.gz'
 GEO = f'{PROJ}/reference/onek1k_geo'
 GT_DOSAGE = {'0|0': 0.0, '0|1': 1.0, '1|0': 1.0, '1|1': 2.0, '0/0': 0.0, '0/1': 1.0, '1/0': 1.0, '1/1': 2.0}
 

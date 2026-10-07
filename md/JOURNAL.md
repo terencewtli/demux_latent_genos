@@ -515,3 +515,12 @@ region-restricted) and rerun A06b / A06c with the Level B dosages.
   The fastqs can be removed after A07b; the user deletes them.
 - **Go/no-go:** per-donor typed-site r² of imputed GEX genotypes. Around 0.4 or higher on real PBMC pools → plan
   the 75-pool run plus real eQTL fine-mapping (the A06 question on real data).
+
+### 2026-10-06 ~17:50: correction, the OneK1K VCF is already GRCh38 (no liftover)
+- Picard rejected 245,159 of 492,638 typed SNVs (241,535 MismatchedRefAllele). A check of REF against both
+  references at the *same* coordinates: hg38 400/400, hg19 ~25%. The `1`..`22` contig names had misled me into
+  assuming GRCh37, and the 10-06 entry above is wrong on this point.
+- A07c now only renames contigs (1 → chr1) and checks REF == hg38 base. Output `onek1k.typed.b38.vcf.gz`; A07g
+  reads it. The double-lifted `onek1k.typed.hg38.vcf.gz`, `lifted.vcf.gz` and `lifted.reject.vcf.gz` are wrong and
+  unused, left for the user to delete. The first A07c failure (job 15073119) was a wrong chain path.
+- Rerun A07c job: see PROGRESS; A07g's hold was updated to it.
