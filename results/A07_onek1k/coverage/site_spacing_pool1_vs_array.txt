@@ -1,0 +1,10 @@
+                                     0            1
+set                   souporcell_pool1  array_typed
+n                               249165       492638
+gap_median_kb                    1.415        3.012
+gap_p90_kb                      25.345       12.949
+gap_p99_kb                     151.983       33.209
+n_gaps_gt_500kb                    100           44
+Mb_in_gaps_gt_250kb            389.205       146.07
+frac_100kb_bins_hit              0.787        0.919
+frac_1000kb_bins_hit              0.94        0.937

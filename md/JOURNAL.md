@@ -652,3 +652,44 @@ part to change.
   - the old downstream chain 15073127 / 15092042 / 15092043 / 15092047, held on v1 A07f, which needs resubmitting
     against v2 for pools 70 / 11 / 19. A07h / A07i still read `score/pool<P>` and need the suffix.
 
+
+## 2026-10-08 (evening): souporcell site spacing vs the array; OneK1K depth vs the simulations; OneK1K eQTL download
+
+- **Site spacing** (`scripts/A07g_site_spacing.py`; `results/A07_onek1k/coverage/site_spacing_pool1_vs_array.txt`).
+  Autosomal SNVs only.
+
+  | | souporcell pool 1 | OneK1K array (typed) |
+  |---|---|---|
+  | sites | 249,165 | 492,638 |
+  | median gap | 1.4 kb | 3.0 kb |
+  | 90th / 99th percentile gap | 25 / 152 kb | 13 / 33 kb |
+  | gaps > 500 kb | 100 | 44 |
+  | genome in gaps > 250 kb | 389 Mb (~13%) | 146 Mb (~5%, mostly centromeres) |
+  | 100 kb / 1 Mb windows with a site | 79% / 94% | 92% / 94% |
+
+  - Souporcell sites are clumped into expressed 3′ gene ends: the median gap is smaller than the array's, but the
+    tail is much longer.
+  - About 240 Mb more of the genome than the array sits in big gaps, where imputation falls back to the prior.
+  - The array is a designed tag-SNP backbone; souporcell sites are chosen by expression, not by LD coverage.
+- **Depth per donor** (`scripts/A07g_cluster_depth.py`; `results/A07_onek1k/coverage/coverage_compare.tsv`).
+  Medians over clusters with ≥ 100 singlet cells; AO + RO from `cluster_genotypes.vcf`.
+
+  | | cells / donor | sites with reads | ≥ 5 reads | ≥ 10 reads | median depth (covered) | covered sites at 1–2 reads |
+  |---|---|---|---|---|---|---|
+  | sim n8 GEX | ~1,017 | 188k | 97k | 45k | 5 | 22% |
+  | sim n16 GEX | ~520 | 177k | 53k | 23k | 3 | 46% |
+  | sim n8 ATAC | ~1,017 | 326k | 236k | 135k | 8 | 10% |
+  | sim n16 ATAC | ~510 | 321k | 149k | 71k | 4 | 30% |
+  | OneK1K (pools 1/55/11/70) | 1,140–1,510 | 158–170k | 43–47k | 20–23k | 2 | 51–57% |
+
+  - OneK1K has more cells per donor than any simulation, but per-site depth is **at or below the sim n16 GEX runs**
+    (3′ v2 chemistry, PBMC). Its mean depth is higher (10–12) because of a few highly expressed genes.
+  - n16 GEX GLIMPSE2 typed r² was 0.91–0.94 and untyped common 0.56, so depth alone doesn't make the simulations
+    optimistic for OneK1K. Naive r² agrees: sim n16 GEX 0.65–0.67 vs OneK1K pre-imputation 0.67–0.73.
+  - What the simulations leave out (ambisim draws reads from the truth genotypes): allele-specific / monoallelic
+    expression, RNA editing, reference mapping bias, and real error structure. All of these push real data down.
+  - Expectation for A07g: r² ≥ 0.9 at the ~6–9k array sites souporcell covers, and roughly the sim untyped value
+    (~0.5–0.6) across all 492k array sites.
+- **OneK1K eQTL tables** (onek1k.org S3, 14 cell types + "All") are downloading to
+  `latent_genos/reference/onek1k/published_eqtl/` (background; ~1.7 GB per cell type, probably full summary statistics).
+  The integrity check is still to do.
