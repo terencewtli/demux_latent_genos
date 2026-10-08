@@ -616,3 +616,39 @@ part to change.
   - Level B mean window r² was GEX 0.37, which is why GEX eGene discovery and fine-mapping both dropped in the
     simulations.
   - A07h tests whether all-reads imputation (scTAPAS-style) closes that gap on real 3' data.
+
+## 2026-10-08: A07d souporcell done (4/5 pools); pre-imputation accuracy (A07g_onek1k_preimpute); reruns
+
+- **Souporcell:** pools 70 / 1 / 55 / 11 finished. The singlet rate is about 87% everywhere, doublets 12-13%.
+  Pool 19 hit the 24 h limit in troublet (job 15073125.5).
+- **Pre-imputation** (`scripts/A07g_onek1k_preimpute.py`; raw souporcell GT vs array GT at souporcell-called array sites).
+  Of ~220-250k souporcell SNVs per pool, ~8-9k are on the array, ~6k called per donor. Clean clusters:
+
+  | pool | clean clusters | r2_gt | concordance |
+  |---|---|---|---|
+  | 70 | 7/9 | 0.70 | 0.79 |
+  | 1 | 12/12 | 0.67 | 0.79 |
+  | 55 | 14/14 | 0.72 | 0.80 |
+  | 11 | 14/17 | 0.73 | 0.81 |
+
+  Het recall is ~0.48 and hom-alt recall ~0.96: hets read as homozygous at low depth, which is what imputation should
+  fix. Per-cell agreement with GEO labels is 0.9985 (pool 1) and 0.9995 (pool 55).
+- **Pool 70 failed clustering** ("Non-finite gradient"): donors 211 + 221 merged into one cluster, plus one
+  all-donor junk cluster.
+- **Pool 11 is clean but k was wrong.** GEO lists 17 donors but only 14 have cells, which left 3 tiny junk clusters
+  (Hungarian assigned them to the duplicated `_2` truth samples). Its 0.77 GEO-cell concordance is an ID-convention
+  artefact of the 846/847/848 run of IDs plus those duplicates, not bad clustering.
+- **Truth VCF:** 20 duplicated samples (`OneK1K_<n>_2`), which is why margin_donor = 0 for those donors.
+- **Decision (user):** k = donors with cells in GEO Individual_Barcodes (pool 11: 14, pool 19: 13; pool 19 also has a
+  donor with only 67 cells). `txt/onek1k_pilot_pools.txt` was updated; the GEO-list k is kept in
+  `onek1k_pilot_pools.geo_k.txt`.
+  - Rerun: `qsub/A07d_souporcell_rerun.sh` 15105391 (pools 70 seed 2, 11 k=14, 19 k=13) into
+    `souporcell/pool<P>_v2`, reusing the first run's vartrix matrices; the clustering binary is called with --seed.
+  - A07f / A07g take `SFX=_v2` / `--suffix _v2`. v2 imputation 15105395 / 15105396 and preimpute 15105393 / 15105394
+    are held on the rerun.
+- **Left for the user to qdel** (the classifier blocked qdel):
+  - 15105237: pool 19 k=18 resume;
+  - 15073126.89-110: held, pool 19 v1;
+  - the old downstream chain 15073127 / 15092042 / 15092043 / 15092047, held on v1 A07f, which needs resubmitting
+    against v2 for pools 70 / 11 / 19. A07h / A07i still read `score/pool<P>` and need the suffix.
+
