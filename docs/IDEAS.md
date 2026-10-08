@@ -141,6 +141,7 @@ This needs no read simulation because 1000G 30x BAMs exist. Use HGDP donors if t
 | HipSci-derived pooled iPSC 10x (e.g. Cuomo 2020; Jerber 2021, ~200 lines in pools) | Pooled, differentiation time courses, sc-eQTL published; HipSci has an open-access genotype subset | Raw-data access mixed (ENA / EGA); check which lines are open |
 | User's 4-donor fibroblast → iPSC (open) | ASE validation (already chosen) | Open |
 | User's 51-line pools | Right scale | Protected; excluded by decision 2026-09-30 |
+| **Open-access 10x multiome QTL cohort** (wanted, 2026-10-08) | A06 Level B: at simulated coverage, ATAC / multiome imputed genotypes keep most eGene and fine-mapping power (h² 0.10, untyped causal: eGene 0.72 vs GEX 0.37; causal in CS 0.44 vs 0.18). A real pooled multiome cohort with genotypes would test this. | None found yet; the only open multiome in hand is the user's 4-donor fibroblast → iPSC set (too small for QTLs). Search pending. |
 
 If OneK1K raw reads are obtainable, it beats every simulation for the eQTL question. Tier 1 would then mainly
 provide the mechanism (circularity) and the low-pass / design sweeps.
@@ -175,6 +176,8 @@ Ranked by my sense of value per effort.
    not** run it on real public data without an ethics conversation first.
 8. **Monopogen comparison** (already planned): its LD refinement is the closest published method. The fair test is
    Monopogen on per-cluster pseudobulk vs souporcell latent + GLIMPSE2.
+
+9. **ASE as an imputation check (idea only, 2026-10-08; user: not implementing, too many problems).** Donors imputed het at a known eQTL lead should show phase-consistent allelic imbalance at exonic hets of that gene in donor pseudobulk; compare imputed + GLIMPSE2-phased vs array genotypes. Problems: 3′ reads see few exonic hets, per-cell dropout and bursting, phasing error between lead and exonic SNP, and circularity when the same reads call the het. Note that strongly monoallelic sites are exactly where naive souporcell calls read homozygous.
 
 ## Suggested order
 
