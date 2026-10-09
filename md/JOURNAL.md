@@ -734,3 +734,20 @@ part to change.
 - **Not done:** A08d SuSiE-RSS R script and the qsubs for A08b/c/d. `A08d_prep_loci.py` is written but untested. Four LD
   arms: OneK1K all (in-sample gold), OneK1K pilot, latent pilot, 1000G EUR founders.
 - ASE recorded as an idea only (IDEAS 9); the user does not want it implemented.
+
+## 2026-10-08 (late): A08d SuSiE-RSS + qsubs written and tested on 3 chr22 loci
+
+- `scripts/A08d_susie_rss.R`: susie_rss(z, R, n = 982, L = 10), with R = (1 − 0.1) cor + 0.1 I for every arm;
+  `estimate_s_rss` records the LD–z mismatch. `scripts/A08d_summarize.py` compares each arm with the gold `onek1k_all`
+  arm on PIP correlation, credible-set recall/precision, lead in CS, CS size and s, split by souporcell site density at
+  the lead.
+- qsubs: `A08b_extract_dosages.sh` (22 chromosomes; skips existing), `A08c_score_anchor.sh`, `A08d_prep_loci.sh` and
+  `A08d_susie_rss.sh` (5 cell types; MAX_LOCI 200, LAMBDA 0.1). None submitted: they wait for the v2 pools (70 / 11 / 19).
+- **Test** (cd4nc, 3 chr22 loci, 26 donors). In-sample (1,098) and 1000G EUR LD give the same single credible set
+  (PIP r 0.99). Both 26-donor arms are dominated by small-n LD: s ≈ 0.6–0.8, up to 10 spurious credible sets; PIP r is
+  0.39 for onek1k_pilot and 0.21 for latent_pilot.
+  - Expectation: at ~60 donors the pilot arms will still be small-n-limited, so the imputation effect has to be read as
+    latent_pilot vs onek1k_pilot, not vs gold.
+  - A stronger λ (0.3–0.5) or restricting to the top-|z| region are the knobs, if needed.
+- **The test outputs must be removed before the real run** (26 donors; the qsubs skip existing outputs). The user runs:
+  `rm -r results/A08_eqtl_anchor/finemap/cd4nc results/A08_eqtl_anchor/dosage/chr22.*`

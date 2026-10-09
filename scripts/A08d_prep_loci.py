@@ -12,7 +12,7 @@ For each locus (lead +- --win, 1000G MAF >= --min-maf, variants present in A08b 
     kg_eur         1000G 30x EUR founders (out-of-sample reference panel LD)
 Output: results/A08_eqtl_anchor/finemap/<ct>/<gene>/
 
-usage: python scripts/A08d_prep_loci.py --ct cd4nc [--win 250000] [--max-loci 200] [--min-maf 0.05]
+usage: python scripts/A08d_prep_loci.py --ct cd4nc [--win 250000] [--max-loci 200] [--min-maf 0.05] [--chroms 22]
 """
 import argparse
 import os
@@ -107,10 +107,13 @@ def main() -> None:
     ap.add_argument('--win', type=int, default=250000)
     ap.add_argument('--max-loci', type=int, default=200)
     ap.add_argument('--min-maf', type=float, default=0.05)
+    ap.add_argument('--chroms', default='', help='comma-separated GRCh37 CHR values to restrict to (testing)')
     a = ap.parse_args()
 
     loci = pd.read_csv(f'{OUT}/loci.tsv', sep='\t')
     loci = loci[loci.CELL_ID == a.ct]
+    if a.chroms:
+        loci = loci[loci.CHR.astype(str).isin(a.chroms.split(','))]
     if len(loci) > a.max_loci:
         loci = loci.sample(a.max_loci, random_state=1)
     log(f'{a.ct}: {len(loci)} loci')
