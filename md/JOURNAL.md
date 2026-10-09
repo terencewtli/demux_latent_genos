@@ -823,3 +823,103 @@ part to change.
   - A08d_susie_rss is held by the user hold because it skips loci whose output exists. The 26-donor chr22 test
     outputs in `results/A08_eqtl_anchor/finemap/cd4nc` are still there (the dosage half was already removed). The
     user runs `rm -r results/A08_eqtl_anchor/finemap/cd4nc`, then `qrls 15111332`.
+
+## 2026-10-09 (later): all-pool accuracy; tensorqtl env fixed; A07j spacing-vs-information test
+
+- **All 5 pools scored (A07g; v2 for 70 / 11 / 19).** Means over donors:
+
+  | pool | donors | naive GT | imputed, covered sites | per-variant untyped r² |
+  |---|---|---|---|---|
+  | 70_v2 | 9 | 0.637 | 0.825 | 0.282 |
+  | 1 | 12 | 0.668 | 0.875 | 0.268 |
+  | 55 | 14 | 0.722 | 0.922 | 0.279 |
+  | 11_v2 | 14 | 0.729 | 0.925 | 0.275 |
+  | 19_v2 | 13 | 0.692 | 0.891 | 0.267 |
+
+  "Per-variant untyped r²" is the vote-weighted mean of `mean_site_r2` over MAF bins.
+- **A08c with 54 donors** (clean clusters, all 5 pools):
+
+  | where | median r² |
+  |---|---|
+  | lead SNPs (17.5k) | 0.79 |
+  | within 10 kb of a lead | 0.67 |
+  | 10–100 kb from a lead | 0.32 |
+  | 100 kb–1 Mb from a lead | 0.04 |
+  | all scored variants | 0.06 |
+
+  By distance to the nearest souporcell site: 0.89 at the site, 0.43 within 5 kb, 0.04 at 5–20 kb.
+
+  LD fidelity around leads: corr_r2 0.94, proxy Jaccard 0.83.
+- **A07i_eqtl failed** (15111328): the `tensorqtl` env never existed, because the A00z mamba 0.15 build failed
+  silently, like the akita one.
+  - **Rebuilt with pip pins:** `conda create -n tensorqtl python=3.10 pip`, then numpy 1.26.4, pandas 2.1.4,
+    scipy 1.11.4, pyarrow 14.0.2, torch 2.1.2+cpu and tensorqtl 1.0.9 (`--no-deps`).
+  - **Import-time deps:** pandas-plink 2.3.1 (`--no-deps`), dask / xarray 2024.1.1, qtl, deprecated, tqdm,
+    zstandard, cffi.
+  - **Known gap:** pandas-plink's own pins are unmet (pandas ≥ 2.2, pandera), and pgenlib is absent. Neither
+    matters here: A07i passes DataFrames to `cis` and never reads plink / pgen.
+  - **Resubmitted** as 15111471. The pseudobulk (15111327) had finished: 62 donors, median 680 CD4 T cells.
+- **A07j: why does accuracy collapse within ~5–20 kb?** (user question: are arrays designed to be evenly spread, or
+  does 3′ RNA cover too little?) This is a 2 × 2 simulation on the same 54 donors, chr20 + chr22:
+
+  | | the donor's own souporcell sites | random sites, same count, MAF-matched |
+  |---|---|---|
+  | perfect calls | `perfect_soup` | `perfect_random` |
+  | weak calls | `weak_soup` | `weak_random` |
+
+  - **Weak calls:** binomial reads at the donor's real cluster depth, error 0.01, no ambient.
+  - **Inputs:** OneK1K genotypes with R2 ≥ 0.8.
+  - **Random sites:** drawn from non-typed candidates.
+  - **Scoring:** array-TYPED SNVs never used as input by any arm. chr22 has 6,885 such SNVs.
+  - **Real latent run on that set:** median 0.06 overall; 0.39 at < 2 kb, 0.14 at 2–5 kb, 0.03 at 5–20 kb.
+    Consistent with A08c.
+  - **Reading:**
+    - perfect_random vs perfect_soup = the cost of RNA spacing;
+    - weak vs perfect = the cost of depth;
+    - weak_soup vs latent = the cost of ambient RNA and cluster errors.
+  - **Scripts:** `scripts/A07j_targets.py` (both chromosomes built: per donor ~2,300 (chr22) / 2,700 (chr20)
+    input sites), `scripts/qsub/A07j_impute.sh` (job 15111440, 8 tasks; A07f's GLIMPSE2 steps verbatim) and
+    `scripts/A07j_score.py`.
+
+## 2026-10-09 (later): A07j result: spacing, not depth, limits latent-genotype imputation
+
+Jobs 15111440 (8 tasks, 20–45 min each); `scripts/A07j_score.py` → `results/A07j_spacing/`. 54 donors; chr20 +
+chr22; 18,579 held-out array-typed SNVs (MAF ≥ 1%) that no arm used as input. Median per-variant r² across donors:
+
+| arm | all | MAF 1–5% | MAF 20–50% |
+|---|---|---|---|
+| perfect_random | **0.49** | 0.24 | 0.69 |
+| weak_random | **0.31** | 0.10 | 0.50 |
+| perfect_soup | **0.07** | 0.03 | 0.11 |
+| weak_soup | 0.042 | 0.017 | 0.076 |
+| latent (real run) | 0.037 | 0.018 | 0.058 |
+
+- **Spacing is the dominant cost.**
+  - Perfect genotype calls at each donor's own souporcell sites give r² 0.07.
+  - The same number of perfect calls at random sites gives 0.49, seven times higher.
+  - Even weak calls (the real depth) at random sites give 0.31, far above perfect calls at RNA sites.
+  - Souporcell sites are clustered in a few 3′ ends, so most of them carry redundant haplotype information.
+- **Depth costs less, and only once spacing is good:** perfect → weak is 0.49 → 0.31 with random spacing, but
+  0.07 → 0.04 with RNA spacing.
+- **Ambient RNA and cluster errors cost almost nothing:** weak_soup 0.042 vs the real latent run 0.037.
+- **By distance to the nearest souporcell site:**
+
+  | distance | perfect_soup | perfect_random |
+  |---|---|---|
+  | < 2 kb | 0.41 | 0.48 |
+  | 2–5 kb | 0.19 | 0.51 |
+  | 5–20 kb | 0.045 | 0.48 |
+  | 20–100 kb | 0.017 | 0.49 |
+
+  Random spacing is flat because its own inputs are elsewhere. By distance to each arm's OWN nearest input,
+  perfect_random still decays (0.58 → 0.32 at 5–20 kb → 0.14 at 20–100 kb), but much more slowly than RNA spacing,
+  because the neighbouring random sites constrain the haplotype on both sides.
+- **Answer to the user's question:** both are true, but spacing dominates. 3′ RNA covers too little of the genome,
+  and in clumps. Arrays win mainly by even spacing (plus accurate calls). Deeper 3′ GEX sequencing would barely
+  help; spread-out reads would (ATAC, full-length RNA, low-pass WGS). For cis-eQTL near expressed genes, the RNA
+  sites are where they are needed (A08c leads r² 0.79).
+- **Caveats:**
+  - perfect calls at souporcell sites come from OneK1K's R2 ≥ 0.8 imputed genotypes (~96% of those sites are not
+    on the array);
+  - random sites are MAF-matched and drawn from non-typed candidates;
+  - chance floor ~0.02.
