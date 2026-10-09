@@ -797,3 +797,29 @@ part to change.
     mean_site_r2): **0.27 (pool 1), 0.28 (pool 55)**; MAF 5-50% 0.27 / 0.28, MAF 1-5% 0.26 / 0.27. The per-donor
     0.58 / 0.61 above is inflated by allele-frequency variance across sites. Chance floor with 12-14 donors ≈ 0.08.
     Simulation equivalent (GEX n8, per-site mean) 0.34, so real data is in line with the simulations.
+
+## 2026-10-09: v2 imputation done; scoring, eQTL and A08 chain submitted
+
+- **A07f v2 (pools 70 / 11 / 19) is complete:** 22 / 22 chromosomes per pool, every log reached `End:`
+  (jobs 15105395 / 15105396). The raw arms (A07i_raw_arms 15109603 / 5 / 6) are also done.
+- **Fix before submitting (`A07i_pseudobulk.py`, `A07h_split_bams.oracle_labels`):** pseudobulk read
+  `score/pool<P>/assign.tsv` and `souporcell/pool<P>` with no `_v2`. That would have failed for pools 70 / 11 / 19
+  (no v1 score), or used the bad v1 clusters. It now uses the same `pool_tag()` rule as `A07i_eqtl.py`:
+  `pool<P>_v2` when `score/pool<P>_v2/assign.tsv` exists. Checked: v1 behaviour is unchanged (pool 1: 17,036 soup /
+  17,677 oracle labels).
+- **Submitted:**
+
+  | step | job | hold |
+  |---|---|---|
+  | A07g score v2 (pools 70; 11 / 19) | 15111325; 15111326 | none |
+  | A07i_pseudobulk | 15111327 | A07g v2 |
+  | A07i_eqtl (chr6 + chr22) | 15111328 | pseudobulk |
+  | A08b dosages | 15111329 | none |
+  | A08c score | 15111330 | A08b |
+  | A08d_prep_loci | 15111331 | A08b |
+  | A08d_susie_rss | 15111332 | A08d_prep + a **user hold** |
+
+  - A07h (BAM-based arms) never ran, so A07i_eqtl runs without the `bam_*` arms.
+  - A08d_susie_rss is held by the user hold because it skips loci whose output exists. The 26-donor chr22 test
+    outputs in `results/A08_eqtl_anchor/finemap/cd4nc` are still there (the dosage half was already removed). The
+    user runs `rm -r results/A08_eqtl_anchor/finemap/cd4nc`, then `qrls 15111332`.

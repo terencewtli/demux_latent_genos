@@ -13,6 +13,8 @@ Output: $SCR/A07/h_bams/pool<P>/<mode>/<name>.bam(.bai), names.txt, bamlist.txt 
         quilt_bamlist.txt (paths only), stats.tsv
 usage: python scripts/A07h_split_bams.py --pool 70 --mode soup --chroms chr6,chr22
 """
+from __future__ import annotations
+
 import argparse
 import glob
 import os
@@ -32,14 +34,15 @@ def soup_labels(pool: str) -> dict:
     return dict(zip(c.barcode.str.replace(r'-1$', '', regex=True), 'c' + c.assignment.astype(str)))
 
 
-def oracle_labels(pool: str) -> dict:
+def oracle_labels(pool: str, tag: str | None = None) -> dict:
     """GEO 'Individual ID' is '<a>_<b>' and both OneK1K_<a> and OneK1K_<b> are VCF samples, so the ID alone does not
     say which is the donor. A07g resolves this per pool from the souporcell genotype match (assign.tsv); only that
     naming convention is taken from it, the per-cell labels are GEO's."""
     pools = pd.read_csv(f'{PROJ}/txt/onek1k_pilot_pools.txt', sep='\t', header=None, names=['pool', 'gsm', 'k'], dtype=str)
     gsm = pools.loc[pools.pool == pool, 'gsm'].item()
     g = pd.read_csv(glob.glob(f'{GEO}/{gsm}_*Individual_Barcodes.csv.gz')[0], dtype=str)
-    assigned = set(pd.read_csv(f'{PROJ}/results/A07_onek1k/score/pool{pool}/assign.tsv', sep='\t').donor)
+    tag = tag or f'pool{pool}'   # pool<P>_v2 for the A07d rerun
+    assigned = set(pd.read_csv(f'{PROJ}/results/A07_onek1k/score/{tag}/assign.tsv', sep='\t').donor)
     ids = g['Individual ID'].unique()
     first = sum(f'OneK1K_{x.split("_")[0]}' in assigned for x in ids)
     second = sum(f'OneK1K_{x.split("_")[1]}' in assigned for x in ids)

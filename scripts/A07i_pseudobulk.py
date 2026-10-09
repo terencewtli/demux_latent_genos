@@ -47,6 +47,11 @@ def lineage(m: sp.csr_matrix, symbols: np.ndarray) -> np.ndarray:
     return np.where(lab == 'T', np.where(cd8s > 0.5, 'CD8T', 'CD4T'), lab)
 
 
+def pool_tag(p: str) -> str:
+    """pool<P>_v2 (A07d rerun) when its A07g score exists, else pool<P> (same rule as A07i_eqtl.py)."""
+    return f'pool{p}_v2' if os.path.exists(f'{RES}/score/pool{p}_v2/assign.tsv') else f'pool{p}'
+
+
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument('--labels', choices=['oracle', 'soup'], required=True)
@@ -61,12 +66,13 @@ def main() -> None:
         f = pd.read_csv(f'{d}/features.tsv', sep='\t', header=None)
         bc = pd.read_csv(f'{d}/barcodes.tsv', header=None)[0].str.replace(r'-1$', '', regex=True).values
         genes = f[0].values
+        tag = pool_tag(pool)
         if a.labels == 'oracle':
-            lab = oracle_labels(pool)
+            lab = oracle_labels(pool, tag)
         else:
-            A = pd.read_csv(f'{RES}/score/pool{pool}/assign.tsv', sep='\t')
+            A = pd.read_csv(f'{RES}/score/{tag}/assign.tsv', sep='\t')
             c2d = dict(zip(A.cluster.astype(str), A.donor))
-            lab = {b: c2d.get(c) for b, c in soup_labels(pool).items()}
+            lab = {b: c2d.get(c) for b, c in soup_labels(tag[len('pool'):]).items()}
         donor = np.array([lab.get(b) for b in bc], dtype=object)
         lin = lineage(m, f[1].values)
         cells.append(pd.DataFrame({'pool': pool, 'barcode': bc, 'donor': donor, 'lineage': lin}))
@@ -76,7 +82,7 @@ def main() -> None:
                 if sel.sum() < MIN_CELLS:
                     continue
                 sums[(ct, dn)] = (np.asarray(m[:, np.where(sel)[0]].sum(axis=1)).ravel(), int(sel.sum()))
-        print(f'pool {pool}: {len(bc)} cells, labelled {np.sum(donor != None)}, lineages '  # noqa: E711
+        print(f'{tag}: {len(bc)} cells, labelled {np.sum(donor != None)}, lineages '  # noqa: E711
               f'{pd.Series(lin).value_counts().to_dict()}', flush=True)
     C = pd.concat(cells)
     C.to_csv(f'{out}/cells.tsv.gz', sep='\t', index=False)
