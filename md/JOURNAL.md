@@ -693,3 +693,44 @@ part to change.
 - **OneK1K eQTL tables** (onek1k.org S3, 14 cell types + "All") are downloading to
   `latent_genos/reference/onek1k/published_eqtl/` (background; ~1.7 GB per cell type, probably full summary statistics).
   The integrity check is still to do.
+
+## 2026-10-08 (night): A08 eQTL-anchored evaluation started; first real imputed accuracy (chr22)
+
+- **Downloads:**
+  - OneK1K full cis-eQTL tables (onek1k.org S3; 14 cell types plus "All") → `latent_genos/reference/onek1k/published_eqtl/`.
+    Coordinates are **GRCh37** (alleles match hg19 at 200/200 sampled SNVs vs hg38 98/200).
+  - TenK10K multiome caQTL release (Hugging Face `anglixue/TenK10K_multiome`) → `reference/tenk10k_multiome/`:
+    significant summary (243,225 rows), per-cell-type sig/independent tables, SuSiE, coloc, peaks; **GRCh38**
+    (REF matches hg38 at 223/223). The full parquet tables (~1.1 TB) were not downloaded. TenK10K raw single-cell data and
+    genomes are EGA managed access (EGAS50000001653 / 1654).
+- **A08a** (`scripts/A08a_select_eqtls.py`, qsub 15109046): the paper's criterion, taken from powellgenomicslab/onek1k_phase1
+  code. Spearman, gene ± 1 Mb, MAF > 5%, qvalue per cell type × chr, significant = **localFDR < 0.05** (the table's `FDR`
+  column), conditional rounds 1–5. Leads = min P per (cell type, gene, round): **26,597, the paper's exact count**.
+  Loci for fine-mapping: round-1 leads with |z| ≥ 5 in cd4nc / cd8et / nk / bin / monoc = 6,327.
+- **A08b** (`scripts/A08b_extract_dosages.py`): per chromosome, matched latent (GLIMPSE2) and OneK1K DS matrices on the
+  same donors, plus distance to the nearest souporcell GL site. Bug fixed before any use: `bcftools query -s` returns
+  samples in **list order**, not VCF order; the order is now read back from `bcftools view -h -s`.
+- **A08c, chr22 test** (pools 1 + 55, 26 donors; scored where OneK1K R2 ≥ 0.8; per-variant r² across donors):
+
+  | distance to nearest souporcell site | n | median r² |
+  |---|---|---|
+  | 0 (the site itself) | 4,355 | 0.91 |
+  | < 5 kb | 31,930 | 0.58 |
+  | 5–20 kb | 21,562 | 0.09 |
+  | 20–100 kb | 13,472 | 0.03 |
+
+  | distance to nearest OneK1K eQTL lead | n | median r² |
+  |---|---|---|
+  | lead SNP | 434 | **0.77** |
+  | < 10 kb | 14,472 | 0.65 |
+  | 10–100 kb | 32,910 | 0.30 |
+  | 100 kb–1 Mb | 23,775 | 0.05 |
+
+  - Per-donor r²: typed 0.61, eQTL leads 0.76.
+  - LD fidelity around leads (± 250 kb, MAF ≥ 5%): median correlation of r² vectors 0.88, proxy-set Jaccard 0.78.
+  - Reading: imputation is very local (accuracy collapses beyond ~20 kb of a read-covered site). But eQTL leads sit
+    where the reads are, so they are imputed much better than the genome average: the A06 "bias helps cis-eQTL"
+    expectation holds on real data. Caveat: n = 26, so the chance floor for r² is ~0.04.
+- **Not done:** A08d SuSiE-RSS R script and the qsubs for A08b/c/d. `A08d_prep_loci.py` is written but untested. Four LD
+  arms: OneK1K all (in-sample gold), OneK1K pilot, latent pilot, 1000G EUR founders.
+- ASE recorded as an idea only (IDEAS 9); the user does not want it implemented.
