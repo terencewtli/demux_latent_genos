@@ -751,3 +751,49 @@ part to change.
   - A stronger λ (0.3–0.5) or restricting to the top-|z| region are the knobs, if needed.
 - **The test outputs must be removed before the real run** (26 donors; the qsubs skip existing outputs). The user runs:
   `rm -r results/A08_eqtl_anchor/finemap/cd4nc results/A08_eqtl_anchor/dosage/chr22.*`
+
+## 2026-10-08 (late night): genome-wide scoring of pools 1 + 55; no-imputation eQTL baseline arms
+
+- **A07g scoring for pools 1 + 55 (v1, the two clean pools)**, without waiting for v2: job 15109554 (tasks 2-3).
+  It writes `results/A07_onek1k/score/pool{1,55}/`, including `assign.tsv`, which A07i needs.
+- **Metric caveat (affects how the simulations read):** the simulation headline "untyped r² 0.56 GEX" is a
+  **per-donor r² across variants**. That number has a floor above zero from allele-frequency variance alone (a dosage
+  of 2p correlates with the truth across sites). The per-variant r² across donors is the one that matters for
+  association. The same scorer writes it (`*.untyped.bins.tsv`, `mean_site_r2`). GEX greedy_maxmin rep1 chr20:
+  aggregate 0.54, **per-site mean 0.34**. n16 ATAC chr1 / chr10: 0.78 / 0.75 aggregate, 0.64 / 0.58 per site. The
+  real chr22 per-variant numbers (A08c) are therefore in line with the simulations, not worse.
+- **Why accuracy collapses beyond ~5-20 kb with GEX** (`coverage/site_spacing_pool1_vs_array.txt`): souporcell sites
+  cluster in expressed 3′ ends. The median gap is 1.4 kb (array: 3.0 kb), but p90 is 25 kb, p99 152 kb, and 389 Mb
+  lie in gaps > 250 kb (array: 146 Mb). Each site has 1-5 reads per donor, so one site barely constrains the
+  haplotype pair. Array imputation works because every typed site is an accurate hard call spread evenly.
+- **No-imputation baseline for the eQTL step** (user request): `scripts/A07i_raw_arms.py` + `qsub/A07i_raw_arms.sh`
+  write per-cluster DS BCFs in the layout A07i reads, under `results/A07_onek1k/raw/{gt,gl}/pool<P><sfx>/`:
+  - `raw_gt`: souporcell `cluster_genotypes.vcf` hard calls at its own sites (non-BACKGROUND SNVs; ./. missing). Tested on
+    pool 1 chr22: 5,270 sites, 68% of cluster × site GTs called.
+  - `raw_gl`: posterior-mean dosage from the A07f `target.bcf` PLs (the same ambient-model input GLIMPSE2 sees) under
+    an HWE prior from the panel's `AF_EUR_unrel`. It has the per-site information + AF prior, but no LD, so imputed − raw_gl
+    is what LD-based imputation adds. Pool 1 chr22: 5,135 sites.
+  - Submitted: 15109603 (pools 1, 55, v1); 15109605 / 15109606 (pools 70 / 11 / 19, `SFX=_v2`, held on v2 A07f
+    15105395 / 15105396).
+- **A07i_eqtl.py changes:**
+  - arms `raw_gt`, `raw_gl` (also in the soup-labels run of the qsub);
+  - `pool_tag()` picks `pool<P>_v2` when `score/pool<P>_v2/assign.tsv` exists. Before this change, A07i would have
+    used the bad v1 imputations of pools 70 / 11 once their v1 score dirs existed;
+  - missing dosages: keep variants with call rate ≥ 0.5 among the analysed donors and fill the rest with the variant
+    mean (`MIN_CALL`). Before, `dropna()` dropped any variant with a missing donor, which would empty the raw arms
+    when pools carry different site sets. It is a no-op for the complete imputed arms.
+  - The A07i_eqtl qsub hold list now includes A07i_raw_arms.
+- **A07g genome-wide results, pools 1 + 55 (v1; job 15109554, ~20 min per pool).** Per-donor r² against OneK1K array
+  GT, means over donors (`results/A07_onek1k/score/pool{1,55}/summary_donor.tsv`):
+
+  | pool | donors | souporcell sites on the array per donor | naive GT (raw souporcell) | imputed, same sites | imputed, untyped array sites (~484k) |
+  |---|---|---|---|---|---|
+  | 1 | 12 | 6,184 | 0.668 | **0.875** | 0.584 |
+  | 55 | 14 | 6,758 | 0.722 | **0.922** | 0.607 |
+
+  - This is the clean before/after: same donors, same sites. Imputation lifts covered-site accuracy by about 0.2 r²,
+    mainly by recovering hets that low depth reads as homozygous.
+  - Untyped sites, per-variant r² across donors (the association-relevant metric; `*.untyped.bins.tsv`
+    mean_site_r2): **0.27 (pool 1), 0.28 (pool 55)**; MAF 5-50% 0.27 / 0.28, MAF 1-5% 0.26 / 0.27. The per-donor
+    0.58 / 0.61 above is inflated by allele-frequency variance across sites. Chance floor with 12-14 donors ≈ 0.08.
+    Simulation equivalent (GEX n8, per-site mean) 0.34, so real data is in line with the simulations.

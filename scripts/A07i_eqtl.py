@@ -6,6 +6,11 @@ Genotype arms (chroms of --chroms only):
   array          OneK1K.noGP.vcf.gz (array + Minimac4), DS, imputation R2 >= 0.8: the reference
   <A07h arms>    DS from results/A07_onek1k/{impute,impute_bam/*,impute_quilt/*}/pool<P>/chrN.imputed.bcf
                  (cluster names -> donors via A07g assign.tsv; see A07h_score.ARMS)
+  raw_gt, raw_gl no-imputation baselines at souporcell's own sites (A07i_raw_arms.py): hard calls, and the
+                 single-site posterior mean (same PLs as GLIMPSE2's input + EUR AF prior, no LD)
+Pools: pool<P>_v2 (A07d rerun) is used when its A07g score/assign.tsv exists, else pool<P>.
+Missing dosages (raw arms; pools with different site sets): variants need call rate >= MIN_CALL among the analysed
+donors, and the rest are filled with the variant mean (standard for missing genotypes; a no-op for complete arms).
 Phenotypes: A07i_pseudobulk counts (--labels oracle by default, so every arm shares one phenotype matrix and only
 genotypes differ; --labels soup gives the fully genotype-free pipeline). Per cell type: genes with CPM >= 1 in
 >= 50% of donors; log2(CPM + 1); rank-inverse-normal per gene. Covariates: N_PC expression PCs + pool indicators.
@@ -35,10 +40,15 @@ ARRAY = f'{SCR}/truth/OneK1K.noGP.vcf.gz'
 GTF = '/u/project/cluo/terencew/reference/hg38_igvf/gencode.v43.chr_patch_hapl_scaff.annotation.gtf'
 ARMS = {'soupsites_glimpse': f'{RES}/impute', 'bam_glimpse_soup': f'{RES}/impute_bam/soup',
         'bam_glimpse_oracle': f'{RES}/impute_bam/oracle', 'bam_quilt_soup': f'{RES}/impute_quilt/soup',
-        'bam_quilt_oracle': f'{RES}/impute_quilt/oracle'}
+        'bam_quilt_oracle': f'{RES}/impute_quilt/oracle', 'raw_gt': f'{RES}/raw/gt', 'raw_gl': f'{RES}/raw/gl'}
 CELLTYPES = ['all', 'CD4T', 'CD8T', 'NK', 'B', 'Mono']
 N_PC = 5
 MIN_MAF = 0.05
+MIN_CALL = 0.5
+
+
+def pool_tag(p: str) -> str:
+    return f'pool{p}_v2' if os.path.exists(f'{RES}/score/pool{p}_v2/assign.tsv') else f'pool{p}'
 
 
 def bcf_ds(vcf: str, region: str, samples: list = None, extra: list = ()) -> pd.DataFrame:
@@ -66,10 +76,11 @@ def arm_dosage(arm: str, chroms: list, donors: list) -> pd.DataFrame:
     for c in chroms:
         mats = []
         for p in pools.pool:
-            f = f'{ARMS[arm]}/pool{p}/{c}.imputed.bcf'
-            if not os.path.exists(f + '.csi'):
+            tag = pool_tag(p)
+            f = f'{ARMS[arm]}/{tag}/{c}.imputed.bcf'
+            if not os.path.exists(f + '.csi') or not os.path.exists(f'{RES}/score/{tag}/assign.tsv'):
                 continue
-            A = pd.read_csv(f'{RES}/score/pool{p}/assign.tsv', sep='\t')
+            A = pd.read_csv(f'{RES}/score/{tag}/assign.tsv', sep='\t')
             c2d = dict(zip(A.cluster.astype(str), A.donor))
             ds = bcf_ds(f, c)
             ds = ds.rename(columns={s: (s if s.startswith('OneK1K_') else c2d.get(s if s.startswith('c') else f'c{s}'))
@@ -157,7 +168,9 @@ def main() -> None:
             if len(ds) < 20:
                 continue
             ph = ph_all[ds]
-            gg = g[ds].dropna()
+            gg = g[ds]
+            gg = gg[gg.notna().mean(axis=1) >= MIN_CALL]
+            gg = gg.apply(lambda v: v.fillna(v.mean()), axis=1)
             af = gg.mean(axis=1) / 2
             gg = gg[(np.minimum(af, 1 - af) >= MIN_MAF)]
             vdf = pd.DataFrame({'chrom': gg.index.str.split(':').str[0], 'pos': gg.index.str.split(':').str[1].astype(int)},

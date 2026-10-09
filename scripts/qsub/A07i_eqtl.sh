@@ -9,7 +9,7 @@
 # A07i step 2: tensorQTL cis-eQTL per cell type with the array genotypes and every imputation arm present, on
 # chr6 + chr22. Phenotypes from oracle labels (genotype arms compared on identical phenotypes), then the fully
 # genotype-free version (soup labels + soup arms).
-# Submit with: qsub -hold_jid A07i_pseudobulk,A07h_glimpse_bam,A07h_quilt2 scripts/qsub/A07i_eqtl.sh
+# Submit with: qsub -hold_jid A07i_pseudobulk,A07i_raw_arms,A07h_glimpse_bam,A07h_quilt2 scripts/qsub/A07i_eqtl.sh
 
 source ~/.bashrc
 conda activate tensorqtl
@@ -18,5 +18,5 @@ module load bcftools
 PROJ=/u/project/cluo/terencew/claude/project_ideas/latent_genos
 echo "Start: $(date)  host=$(hostname -s)"
 time python $PROJ/scripts/A07i_eqtl.py --chroms chr6,chr22 --labels oracle
-time python $PROJ/scripts/A07i_eqtl.py --chroms chr6,chr22 --labels soup --arms soupsites_glimpse,bam_glimpse_soup,bam_quilt_soup
+time python $PROJ/scripts/A07i_eqtl.py --chroms chr6,chr22 --labels soup --arms soupsites_glimpse,bam_glimpse_soup,bam_quilt_soup,raw_gt,raw_gl
 echo "End: $(date)"
