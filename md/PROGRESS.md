@@ -1,61 +1,70 @@
 # Progress
 
-> **Update 2026-10-06: A07 OneK1K real-data pilot submitted** (5 pools, GEX only; JOURNAL 10-06).
-> STARsolo → souporcell → GLIMPSE2 (full 1000G panel) → scored against OneK1K array-typed sites (VCF is already GRCh38; contigs renamed only).
-> Jobs 15073118-15073127 (chained). Go/no-go: imputed typed-site r² ≳ 0.4 per donor → scale to 75 pools + real eQTL.
->
-> **NEXT STEP (decided 2026-10-02): A06, the eQTL fine-mapping / colocalization go/no-go test.**
-> Plan: `docs/A06_FINEMAP_PLAN.md`.
-> - Does latent-genotype error (GEX / ATAC / multiome + GLIMPSE2) damage susieR fine-mapping and coloc, compared
->   with true genotypes?
-> - 300 1000G EUR donors, 100 gene regions, a pseudobulk eQTL simulator.
-> - Estimate: ~75–225 CPU-h, ~3–4 working days.
-> - A Level A noise-injection smoke test comes first and gives a first answer on day 1.
->
-> **Update 2026-10-02 ~20:30: Level A done** (JOURNAL; `results/A06_finemap/level_a/`).
-> - eGene discovery is unaffected by imputed latent genotypes.
-> - Fine-mapping credible sets become small and miss the causal SNP, and colocalisation sensitivity drops
->   (0.77 → 0.53 GEX / 0.67 multiome).
-> - All of this is likely inflated by Level A's independent per-SNP noise, which breaks LD.
-> - **Next: Level B** (GLIMPSE2 on emulated GLs), the same cohort and seeds.
->
-> **Update 2026-10-03:** the Level B chain is submitted and runs unattended.
-> - Jobs: A06d 15022575 → A06e 15022576 → A06b(B) 15022577 → A06c 15022579.
-> - Results land in `results/A06_finemap/level_b/`.
-> - Next session: compare with Level A (JOURNAL 10-03).
+## Status (2026-10-09): OneK1K pilot complete; at the go/no-go decision
 
-## Status (2026-10-01)
+The pilot was: 5 OneK1K pools (70, 1, 55, 11, 19), GEX only. The pipeline:
+1. STARsolo;
+2. souporcell, with the A03a settings;
+3. GLIMPSE2 ambient_b2m5, against the full 1000G panel;
+4. scoring against the OneK1K array.
 
-**Update 2026-10-01** (JOURNAL 10-01):
-- TOPMed leakage is **confirmed**: donor-private singletons r² 0.976 vs 0.35 left out. The current 1000G-based pools
-  cannot be used for a TOPMed comparison. The main arm (local 1000G leave-pool-out) is unaffected and leak-free.
-- GLIMPSE2 ambient_b2m5 full run: 215 / 264 done. The ligate-segment and AVX2 fixes are resubmitted (A04g 14988527).
-- **Decision pending (user):** whether to build a clean TOPMed arm. Plan, if yes:
-  1. leakage-test HGDP donors first (true chr20 genotypes thinned, as in A04d; no simulation needed);
-  2. only if clean, re-simulate a few EUR-like pools from HGDP donors with ambisim.
-  Watch-outs: the gnomAD HGDP+1KG joint callset also contains 1KG (use HGDP samples only), and HGDP itself may be in
-  TOPMed r3 (that is what the test checks).
+Pools 70 / 11 / 19 use the v2 reruns. Nothing is running, and the latest results are in JOURNAL 10-08 to 10-09 (night).
 
-## Status (2026-09-29)
+**Decision rule (set 2026-10-06):** if imputed array-typed r² ≳ 0.4, scale to 75 pools and run a real eQTL analysis.
+- It passes at the sites souporcell itself covers: imputed 0.83–0.93.
+- It fails at untyped sites, scored per variant across donors: 0.27–0.28.
+- The per-donor untyped number (0.58–0.61) is inflated by allele-frequency variance, so it is not the one to use.
+- **Decision pending (user).**
 
-- [x] Project scaffold, README, analysis plan (`docs/ANALYSIS_PLAN.md`)
-- [x] Lit review (`md/LITERATURE.md`), first pass 2026-09-29; still need the full text of Hartoularos 2023 and the other bioRxiv preprints (abstract-only so far)
-- [ ] **A03a souporcell**: ATAC tasks from job 14965122; the GEX tasks failed on an empty-array bug under `set -u` (fixed) and were resubmitted as 14966956 (tasks 1-11:2)
-- [ ] Scoring notebook: cluster→donor matching, dosage r², NRC, site yield, depth curve
-- [ ] **A04a panel msav build**: job 14965520 (chr1-22, full 3,202-sample 1000G 30x panel → `reference/topmed/local_1000G_30x/`), submitted 2026-09-29
-- [ ] A04b prep targets (12 tasks), to run after A03a + A04a finish; the leave-pool-out lists were tested (n16 random rep1: 16 donors + 8 relatives excluded, 3,178 kept)
-- [ ] A04c Eagle + Minimac4 v4.1.6 (264 tasks = 12 runs × 22 chr; QC sets `server` and `all`)
-- [ ] **A04e local leakage calibration**: job 14966649 (held on A04a). Same chr20 input imputed locally with the donors in the panel (`with_donors`) and left out (`loo`); scored with `lib/score_imputation.py` (r² by MAF bin + variants private to the donors). The TOPMed output gets the same scoring
-- [ ] If TOPMed does leak: we don't need a new genotype source for the main analysis (local leave-pool-out is leak-free). For a clean TOPMed arm, re-simulate a few pools from HGDP donors (public 30x, not NHLBI cohorts) and repeat the leakage test on them. All of Us genotypes are controlled-tier only and can't leave the Workbench
-- [ ] GLIMPSE2 on the GL field (A04b already writes it)
-- [ ] TOPMed server comparison through imputationbot (installed, token works, panel id `topmed-r3`). Leakage check first (see ANALYSIS_PLAN)
-- [ ] **TOPMed leakage test** submitted 2026-09-29: job-20260929-163357-077 (69 unique donors, true chr20 GTs, every 10th AF>5% SNV = 15,880 sites; hg38, eagle, r2Filter 0, meta). Password in `latent_genos/results/topmed_leakage/password.txt` (not in git). Next: download, then compare rare-variant r² against a local run with and without the donors in the panel
-- [ ] Re-demultiplex with latent / imputed genotypes (demuxlet, Alvarez 2025 method)
-- [ ] **Monopogen: to run; analysis plan TBD**
+| result | number | where |
+|---|---|---|
+| A07g: per-donor r² at covered sites, naive → imputed (5 pools) | 0.64–0.73 → **0.83–0.93** | JOURNAL 10-09 (later) |
+| A07g: per-variant untyped r² | **0.27–0.28** (simulations: 0.34) | JOURNAL 10-08 (late night), 10-09 |
+| A08c: per-variant r² at OneK1K eQTL leads (54 donors) | **0.79**; 0.67 < 10 kb; 0.04 at 100 kb–1 Mb | JOURNAL 10-09 (later) |
+| A08c: r² by distance to the nearest souporcell site | 0.89 at the site; 0.43 < 5 kb; 0.04 at 5–20 kb | JOURNAL 10-09 (later) |
+| A07j spacing test: held-out typed SNVs, per variant | perfect + random sites 0.49; weak + random 0.31; perfect + RNA sites 0.07; real run 0.037 | JOURNAL 10-09 (A07j result) |
+| A07i cis-eQTL (chr6 + chr22, 62 donors): array eGenes recovered, all cells | imputed **0.75**; raw GT / GL 0.57 | JOURNAL 10-09 (night) |
+| A07i: same lead SNP as the array / median lead–lead LD | 0.16 / 0.96 | JOURNAL 10-09 (night) |
+| A08d SuSiE-RSS (923 loci): PIP r vs in-sample LD | latent 0.67; same donors with array genotypes 0.87; 1000G EUR 0.99 | JOURNAL 10-09 (night) |
+
+**Reading:**
+- The limit is the spacing of the RNA sites, not their depth (A07j). Reads cluster in expressed 3′ ends, so
+  imputation is good at and near expressed genes, and close to the prior beyond ~5–20 kb.
+- cis-eQTL leads sit where the reads are, so lead SNPs are imputed well (0.79).
+- Deeper 3′ GEX would barely help; spread-out reads (ATAC, full-length RNA, low-pass WGS) would.
+- This matches the simulation prior: A06 Level B per-region GEX 0.37 vs ATAC 0.72 / multiome 0.74.
+
+## Open
+
+- [ ] **Go/no-go decision on scaling OneK1K** (user)
+- [ ] A real-data ATAC / multiome arm: needs single-cell ATAC with open-access genotypes. Candidate: the 4-donor
+      fibroblast→iPSC multiome pools (2026-10-01 pivot). The user provides the paths; do not search for data.
+- [ ] Optional, never run: the read-based arms A07h (GLIMPSE2 `--bam-list`, QUILT2 stages; scripts staged)
+- [ ] Monopogen: analysis plan TBD
 - [ ] Low-pass WGS extension (later)
+- ASE: an idea only (IDEAS 9); the user does not want it implemented.
+- Re-demux with recovered genotypes: stopped at the baselines (2026-10-01). Souporcell singlets are already ~perfect;
+  the only gap is n16 GEX doublets.
+
+## Done (details in JOURNAL)
+
+- 2026-09-29 – 10-01: simulations (12 ambisim pools). GLIMPSE2 ambient_b2m5 typed r² 0.92 ATAC / 0.94 GEX, beating
+  Minimac4 (A04l). TOPMed server leakage confirmed (donor-private singletons 0.976 vs 0.35 left out), so the
+  local 1000G leave-pool-out panel is the main arm. The chr1 truncation is handled: score against the truncated
+  `vcf/`.
+- 2026-10-02 – 10-03: A06 fine-mapping simulation. Level A (noise injection) and Level B (GLIMPSE2 on emulated
+  GLs); realized r² GEX 0.37 / ATAC 0.72 / multiome 0.74; GEX quality is set by the expressed sites near a locus.
+- 2026-10-06 – 10-09: A07 OneK1K pilot (A07a–j) and A08 eQTL-anchored evaluation (A08a–d); results above.
+- Kockelbergh 2026 (scTAPAS) half-scoops the eQTL use case with known genotypes for demux, 5′, and QUILT2
+  (JOURNAL 10-06 late).
 
 ## Gotchas
 
 - `ambisim/` (the chr22-design n=8 grid) has had its BAMs deleted, so the n=8 comparison pools come from `ambisim_final/`.
 - `pool_design/tmp.sh` deletes the cellranger BAMs of pools whose demuxlet run is complete. Keep the BAMs of any pool on this project's task list.
 - Both `/u/project/cluo` and `cluo_scratch` are about 99% full.
+- OneK1K genotype VCF (Zenodo 7619796) is already GRCh38 despite `1`..`22` contigs: rename only, never lift over.
+  The OneK1K eQTL tables are GRCh37.
+- `bcftools query -s` returns samples in list order, not VCF order.
+- Pools 70 / 11 / 19: use the `_v2` outputs (`pool_tag()` picks them automatically).
+- The `tensorqtl` env was rebuilt with pip pins (JOURNAL 10-09 later); the mamba 0.15 build fails silently.

@@ -923,3 +923,35 @@ chr22; 18,579 held-out array-typed SNVs (MAF ≥ 1%) that no arm used as input. 
     on the array);
   - random sites are MAF-matched and drawn from non-typed candidates;
   - chance floor ~0.02.
+
+## 2026-10-09 (night): A07i cis-eQTL and A08d SuSiE-RSS results
+
+- **A07i cis-eQTL** (15111471; chr6 + chr22; pseudobulk, 62 donors; souporcell labels;
+  `results/A07_onek1k/eqtl/soup/compare.tsv`). Array eGenes recovered:
+
+  | cell type | array eGenes | imputed | raw_gt | raw_gl |
+  |---|---|---|---|---|
+  | all | 67 | **0.75** | 0.57 | 0.57 |
+  | CD4T | 48 | 0.69 | 0.63 | 0.56 |
+  | CD8T | 27 | 0.70 | 0.70 | 0.59 |
+  | NK | 17 | 0.65 | 0.82 | 0.71 |
+  | B | 26 | 0.73 | 0.54 | 0.54 |
+  | Mono | 12 | 0.83 | 0.75 | 0.75 |
+
+  - The same lead SNP as the array in 9–21% of cases (all: imputed 0.16, raw 0.08–0.11), but the median LD
+    between the two leads is 0.89–1.0.
+  - Counts are small (12–67 eGenes per cell type), so the per-cell-type differences between arms are noise. Only the
+    "all" contrast (imputed vs raw) is worth reading.
+- **A08d SuSiE-RSS** (15111332, 923 loci; `scripts/A08d_summarize.py` rerun after the user removed the stale
+  10-08 summaries). Median vs the gold arm (in-sample OneK1K LD, 982 donors):
+
+  | LD arm | PIP r | CS precision | CS size | s_rss |
+  |---|---|---|---|---|
+  | 1000G EUR | 0.99 | 1.0 | 15 | 0.000 |
+  | OneK1K array, pilot donors | 0.87 | 1.0 | 10 | 0.060 |
+  | latent (imputed), pilot donors | **0.67** | **0.5** | 6 | 0.104 |
+
+  - By souporcell site density at the lead (0–5 / 6–20 / > 20 sites per 100 kb), latent PIP r is 0.20 / 0.60 / 0.69.
+    The array pilot gives 0.59 / 0.88 / 0.87.
+  - Same donors, so latent vs array pilot (0.67 vs 0.87) is the cost of imputation. Credible-set recall is 1.0 for
+    every arm, but the latent arm adds spurious, smaller credible sets.
