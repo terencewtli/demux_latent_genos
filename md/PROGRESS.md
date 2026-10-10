@@ -1,27 +1,39 @@
 # Progress
 
-## Status (2026-10-09, late): GEX-only is a no-go; A09 (IGVF 4-donor multiome) souporcell is running
+## Status (2026-10-10): A09 souporcell done and mapped to donors; imputation + scoring running
 
 **Decision (user, 2026-10-09):** GEX-only imputation will not get much further (untyped per-variant r² 0.27-0.28,
 below the 0.4 bar; A07j shows marker spacing caps it). The ATAC / multiome test is A09, on the user's own data.
 
 **A09: IGVF fibroblast→iPSC multiome**, 10 pools (ys3a..ys3j) × GEX / ATAC = 20 runs (`txt/A09_runs.txt`); 4 unrelated
-EUR PGP donors (C29 / C37 / C38 / C39) in every pool, each at a different time point within a pool.
+EUR PGP donors (C29 / C37 / C38 / C39) in every pool, each at a different time point within a pool
+(`.../multiome/txt/demux_time_map.txt`).
 - Inputs (read in place, never modified):
   - CR-ARC `/u/project/cluo/terencew/igvf/2023_YR2/multiome/mapping/cr_arc/igvf_ref/default/ys3{a..j}/outs` (skip `old/`)
-  - ambimux singlets `.../multiome/csv/demux/ambimux/wgs/ambimux_joint_sings.csv` (tab-separated)
+  - ambimux singlets `.../multiome/csv/demux/ambimux/wgs/ambimux_joint_sings.csv` (tab-separated, singlets only)
   - WGS truth `.../multiome/vcf/wgs/pgp_filt1.rm_missing.reheader.vcf.gz` (per-sample FT / GQ)
   - cell state `.../multiome/csv/clusters/rna_leiden_v7.csv`
-- souporcell runs with the user's `souporcell_gpu pipeline` (`exploration/engineer/code/souporcell_gpu`; common-variants
-  mode, settings as A03a / A07d, k = 4, 200 restarts). This is that pipeline's first real use.
-- Jobs (submitted 2026-10-09 23:00): A09a counts 15119434 (array 1-20) → CPU smoke test 15119435 (ys3a GEX) and
-  A09b GPU cluster + troublet 15119436 (one job, 2 h) → A09c consensus 15119437.
-- Output: `/u/project/cluo_scratch/terencew/claude/latent_genos/A09/souporcell_v2/<pool>_<mod>/`.
-- **First check next session:** `grep "covered common" logs/A09a_soup_counts.15119434.*` is nonzero for all 20, then
-  A09b / A09c logs. The GPU clustering step has never run on real counts.
-- Not built yet: cluster → donor matching against ambimux; identity check; GLIMPSE2 arms (GEX, ATAC, multiome);
-  scoring against WGS (FT = PASS, GQ ≥ 20), per-variant r²; pooling a donor across pools; consistency across pools /
-  time points.
+- souporcell (A09a-c, `souporcell_gpu pipeline`, k = 4, 200 restarts): all 20 runs done 2026-10-10 01:56, outputs in
+  `/u/project/cluo_scratch/terencew/claude/latent_genos/A09/souporcell_v2/<pool>_<mod>/`. Ambient RNA 14-69%.
+- **A09d** cluster → donor map (WGS genotype concordance, Hungarian; `results/A09_multiome/match/`): 19/20 runs map
+  cleanly and agree with the ambimux majority. ATAC concordance with ambimux singlets ≥ 0.987; GEX 0.89-0.98. GEX vs
+  ATAC per-barcode agreement 0.73-0.97. **ys3c GEX fails**: one cluster merges C29 + C39 and one is junk → excluded
+  from imputation.
+- **A09e** GLIMPSE2 (A07f settings, full 1000G panel) on donor-level GLs summed over runs (`A09e_build_gl.py`):
+  31 targets × 22 chr (`txt/A09_targets.txt`: all_{multi,gex,atac} + per pool ys3?_{multi,gex,atac}, ys3c gex/multi
+  dropped); job **15121200**. all_* targets finished.
+- **A09g** scoring vs WGS (FT = PASS, GQ ≥ 20; aggregate r² by typed / untyped and panel MAF bin; naive PL-argmax
+  baseline at typed sites): jobs **15122720** (all_*), **15122721** (per pool, held on A09e).
+  First number, all_multi chr22: typed r² 0.979 (naive 0.806), **untyped r² 0.910** (MAF bins 0.74 at < 1% to 0.92),
+  non-ref concordance 0.97 / 0.82.
+- **A09f** souporcell benchmark on ys3j ATAC (22k cells × 282k loci, k = 4, 200 restarts, seed 4): GPU (2080 Ti)
+  1 min 19 s cluster + 49 s troublet; souporcell_gpu CPU (8 threads) 14 min 57 s + 10 min 18 s; same optimum
+  (log-lik −22,008,342 vs −22,008,498), ARI 0.999 on shared singlets. Rust souporcell 2.4 (8 threads) still
+  running (15121108).
+- Next: per-pool scores → (a) GEX vs ATAC vs multiome per library, (b) gain from pooling a donor across libraries,
+  (c) consistency of a donor's imputed genotypes across pools / time points; compare with the simulation headline
+  (typed 0.92 / 0.94) and the OneK1K GEX result (untyped per-variant 0.27, a different metric: with 4 donors only
+  aggregate r² is defined).
 
 **OneK1K pilot (complete):**
 
@@ -60,7 +72,7 @@ Pools 70 / 11 / 19 use the v2 reruns. The latest results are in JOURNAL 10-08 to
 ## Open
 
 - [x] Go/no-go on scaling OneK1K: no-go for GEX only (user, 2026-10-09)
-- [ ] **A09 real-data ATAC / multiome arm** (above): souporcell running; downstream steps not built
+- [ ] **A09 real-data ATAC / multiome arm** (above): souporcell + donor mapping done; imputation / scoring running
 - [ ] Optional, never run: the read-based arms A07h (GLIMPSE2 `--bam-list`, QUILT2 stages; scripts staged)
 - [ ] Monopogen: analysis plan TBD
 - [ ] Low-pass WGS extension (later)

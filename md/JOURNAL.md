@@ -975,3 +975,39 @@ chr22; 18,579 held-out array-typed SNVs (MAF ≥ 1%) that no arm used as input. 
   variants, 29 min; ATAC 1,921,992 covered variants, 67 min (4 cores). A09a request cut from 16 h to 6 h.
 - Rerun into `A09/souporcell_v2/`: 15119434 → 15119435 / 15119436 → 15119437.
 
+
+## 2026-10-10: A09 souporcell done; donor mapping, imputation, scoring, GPU benchmark
+
+- **souporcell (A09a-c):** all 20 runs finished.
+  - GPU clustering of all 20 runs took 15 min on one 2080 Ti: per run 10-23 s for GEX, 37 s-1 min 51 s for ATAC.
+  - Read counting (A09a, CPU) is the bottleneck: median 14 min per run, up to 83 min.
+  - CPU smoke test on ys3a GEX (10 restarts) vs GPU (200): ARI 0.990 on shared singlets.
+- **A09d (`A09d_match_donors.py`):**
+  - Method: cluster genotype vs WGS GT concordance at covered sites (FT = PASS, GQ ≥ 20; 2.66M sites queried),
+    Hungarian map, then comparison with ambimux singlets and GEX vs ATAC per barcode.
+  - 19/20 runs map cleanly. Cluster concordance with WGS is 0.58-0.86 (low-depth souporcell GTs), with margins to
+    the next donor of 0.02-0.41.
+  - Agreement with ambimux among its singlets: ATAC 0.987-1.000; GEX 0.85-0.98.
+  - Souporcell calls 38-73% of ambimux singlets as singlets. Many GEX "singlets" are droplets that ambimux did not
+    call.
+  - ys3c GEX: cluster 1 = C29 380 + C39 214, cluster 2 = mostly droplets ambimux did not call (junk). It is the only
+    run whose map disagrees with the ambimux majority, and it is excluded from A09e.
+  - ys3d ATAC cluster 0 (margin 0.03) and ys3g GEX cluster 3 (0.05) map correctly despite small margins.
+- **A09e (`A09e_build_gl.py` + `A09e_glimpse_impute.sh`):**
+  - Per run, PLs use the A07f ambient model (that run's rho and pooled site alt fraction). Clusters are renamed to
+    donors, and log-likelihoods are summed over runs, since reads from different libraries are independent.
+  - all_multi chr22 target: 50,766 sites; ATAC contributes 18-36k records per pool, GEX 1.3-3.5k.
+  - GLIMPSE2 settings and panel as A07f; 31 targets.
+- **A09g (`A09g_score.py`):**
+  - Scores imputed DS against WGS per donor × site, split into typed (the donor has ≥ 1 read in the target) and
+    untyped.
+  - Aggregate r² by panel MAF bin. A per-variant r² is not defined with 4 donors, so this is not the OneK1K
+    per-variant metric.
+  - all_multi chr22: typed r² 0.979 (naive 0.806), untyped 0.910; by MAF bin, untyped 0.74 (< 1%), 0.85 (1-5%),
+    0.92 (5-10%), 0.91 (10-20%), 0.88 (20-50%). Donors range 0.90-0.93 untyped.
+  - Caveat: truth sites are those in the 51-sample joint WGS VCF.
+- **A09f benchmark (ys3j ATAC, equal settings):**
+  - GPU (2080 Ti): 1 min 19 s cluster, 49 s troublet.
+  - souporcell_gpu CPU (8 threads, Xeon 6736P): 14 min 57 s cluster, 10 min 18 s troublet.
+  - Same optimum: ARI 0.999 on 16,889 shared singlets; status agreement 0.985.
+  - Rust souporcell still running after > 1.5 h (15121108).
