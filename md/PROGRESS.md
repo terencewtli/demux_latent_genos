@@ -1,6 +1,29 @@
 # Progress
 
-## Status (2026-10-09): OneK1K pilot complete; at the go/no-go decision
+## Status (2026-10-09, late): GEX-only is a no-go; A09 (IGVF 4-donor multiome) souporcell is running
+
+**Decision (user, 2026-10-09):** GEX-only imputation will not get much further (untyped per-variant r² 0.27-0.28,
+below the 0.4 bar; A07j shows marker spacing caps it). The ATAC / multiome test is A09, on the user's own data.
+
+**A09: IGVF fibroblast→iPSC multiome**, 10 pools (ys3a..ys3j) × GEX / ATAC = 20 runs (`txt/A09_runs.txt`); 4 unrelated
+EUR PGP donors (C29 / C37 / C38 / C39) in every pool, each at a different time point within a pool.
+- Inputs (read in place, never modified):
+  - CR-ARC `/u/project/cluo/terencew/igvf/2023_YR2/multiome/mapping/cr_arc/igvf_ref/default/ys3{a..j}/outs` (skip `old/`)
+  - ambimux singlets `.../multiome/csv/demux/ambimux/wgs/ambimux_joint_sings.csv` (tab-separated)
+  - WGS truth `.../multiome/vcf/wgs/pgp_filt1.rm_missing.reheader.vcf.gz` (per-sample FT / GQ)
+  - cell state `.../multiome/csv/clusters/rna_leiden_v7.csv`
+- souporcell runs with the user's `souporcell_gpu pipeline` (`exploration/engineer/code/souporcell_gpu`; common-variants
+  mode, settings as A03a / A07d, k = 4, 200 restarts). This is that pipeline's first real use.
+- Jobs (submitted 2026-10-09 23:00): A09a counts 15119434 (array 1-20) → CPU smoke test 15119435 (ys3a GEX) and
+  A09b GPU cluster + troublet 15119436 (one job, 2 h) → A09c consensus 15119437.
+- Output: `/u/project/cluo_scratch/terencew/claude/latent_genos/A09/souporcell_v2/<pool>_<mod>/`.
+- **First check next session:** `grep "covered common" logs/A09a_soup_counts.15119434.*` is nonzero for all 20, then
+  A09b / A09c logs. The GPU clustering step has never run on real counts.
+- Not built yet: cluster → donor matching against ambimux; identity check; GLIMPSE2 arms (GEX, ATAC, multiome);
+  scoring against WGS (FT = PASS, GQ ≥ 20), per-variant r²; pooling a donor across pools; consistency across pools /
+  time points.
+
+**OneK1K pilot (complete):**
 
 The pilot was: 5 OneK1K pools (70, 1, 55, 11, 19), GEX only. The pipeline:
 1. STARsolo;
@@ -8,7 +31,7 @@ The pilot was: 5 OneK1K pools (70, 1, 55, 11, 19), GEX only. The pipeline:
 3. GLIMPSE2 ambient_b2m5, against the full 1000G panel;
 4. scoring against the OneK1K array.
 
-Pools 70 / 11 / 19 use the v2 reruns. Nothing is running, and the latest results are in JOURNAL 10-08 to 10-09 (night).
+Pools 70 / 11 / 19 use the v2 reruns. The latest results are in JOURNAL 10-08 to 10-09 (night).
 
 **Decision rule (set 2026-10-06):** if imputed array-typed r² ≳ 0.4, scale to 75 pools and run a real eQTL analysis.
 - It passes at the sites souporcell itself covers: imputed 0.83–0.93.
@@ -36,9 +59,8 @@ Pools 70 / 11 / 19 use the v2 reruns. Nothing is running, and the latest results
 
 ## Open
 
-- [ ] **Go/no-go decision on scaling OneK1K** (user)
-- [ ] A real-data ATAC / multiome arm: needs single-cell ATAC with open-access genotypes. Candidate: the 4-donor
-      fibroblast→iPSC multiome pools (2026-10-01 pivot). The user provides the paths; do not search for data.
+- [x] Go/no-go on scaling OneK1K: no-go for GEX only (user, 2026-10-09)
+- [ ] **A09 real-data ATAC / multiome arm** (above): souporcell running; downstream steps not built
 - [ ] Optional, never run: the read-based arms A07h (GLIMPSE2 `--bam-list`, QUILT2 stages; scripts staged)
 - [ ] Monopogen: analysis plan TBD
 - [ ] Low-pass WGS extension (later)
@@ -60,6 +82,8 @@ Pools 70 / 11 / 19 use the v2 reruns. Nothing is running, and the latest results
 
 ## Gotchas
 
+- A09 BAMs: for every pool except ys3i the BAM is newer than its `.bai` (rewritten 2026-01), and samtools region
+  reads fail. A09a reads each BAM through a symlink in `cluo_scratch/.../latent_genos/A09/bam/` with a fresh index.
 - `ambisim/` (the chr22-design n=8 grid) has had its BAMs deleted, so the n=8 comparison pools come from `ambisim_final/`.
 - `pool_design/tmp.sh` deletes the cellranger BAMs of pools whose demuxlet run is complete. Keep the BAMs of any pool on this project's task list.
 - Both `/u/project/cluo` and `cluo_scratch` are about 99% full.

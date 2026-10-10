@@ -955,3 +955,23 @@ chr22; 18,579 held-out array-typed SNVs (MAF ≥ 1%) that no arm used as input. 
     The array pilot gives 0.59 / 0.88 / 0.87.
   - Same donors, so latent vs array pilot (0.67 vs 0.87) is the cost of imputation. Credible-set recall is 1.0 for
     every arm, but the latent arm adds spurious, smaller credible sets.
+
+## 2026-10-09 (late): A09 set up (IGVF 4-donor multiome); first souporcell run failed, rerun submitted
+
+- The user agrees GEX-only is a no-go and provided the real multiome data: 10 pools of fibroblast→iPSC 10x multiome,
+  4 PGP donors per pool, with WGS and ambimux assignments (paths in PROGRESS).
+- souporcell uses the user's `souporcell_gpu`. A `pipeline` subcommand was added there (common-variants mode end to
+  end: samtools depth → covered variants → sc_bam counts → GPU EM → troublet → souporcell's `consensus.py`), tested
+  against souporcell on the chr22 fixture: intermediates byte-identical, ARI 1.0, troublet 99.97%, genotypes 99.96%.
+- Scripts: `A09a_soup_counts.sh` (CPU array), `A09b_soup_cluster_gpu.sh` (all 20 runs in one GPU job, since GPU
+  nodes are scarce), `A09c_soup_consensus.sh`, `A09b_soup_cluster_cputest.sh` (CPU smoke test of the clustering code).
+- **First run (15115614-6) failed for 18 of 20 runs.** Cause: stale BAM indexes (BAM rewritten 2026-01, `.bai` from
+  2025-01) → samtools region reads fail → 0 covered variants. The pipeline did not check the samtools exit status and
+  wrote empty matrices and `.done` files; the GPU job waited 2 h 20 min and died in 12 s.
+- Fixes: the pipeline now stops on a samtools failure, 0 covered variants or empty count matrices; the GPU loop
+  continues past a failed run; A09a builds a fresh index in scratch. Rebuilt ys3a GEX index checked (253 M mapped
+  reads, region reads work; 2 min on 4 cores).
+- Only ys3i ran in the first attempt (outputs since deleted with the rest of `A09/souporcell/`): GEX 222,325 covered
+  variants, 29 min; ATAC 1,921,992 covered variants, 67 min (4 cores). A09a request cut from 16 h to 6 h.
+- Rerun into `A09/souporcell_v2/`: 15119434 → 15119435 / 15119436 → 15119437.
+
