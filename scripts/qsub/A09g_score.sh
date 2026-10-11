@@ -9,8 +9,9 @@
 #$ -j y
 
 # A09g: score one A09e target (row of txt/A09_targets.txt) against WGS (FT=PASS, GQ>=20): aggregate r2 / concordance
-# by typed vs untyped and panel MAF bin, plus the no-imputation (PL argmax) baseline at typed sites; see scripts/A09g_score.py.
-# Writes results/A09_multiome/score/<target>/{sums,metrics}.tsv (overwrites). Requires A09e for that target.
+# by typed vs untyped and panel MAF bin, plus baselines (PL argmax at typed sites; DS = 2 x panel AF), non-ref recall /
+# precision and the share of WGS non-ref genotypes outside the panel; see scripts/A09g_score.py.
+# Writes results/A09_multiome/score_v2/<target>/{sums,metrics}.tsv (overwrites). Requires A09e for that target.
 # Submit with (from latent_genos/): qsub -hold_jid A09e_glimpse_impute scripts/qsub/A09g_score.sh
 
 source ~/.bashrc

@@ -1011,3 +1011,45 @@ chr22; 18,579 held-out array-typed SNVs (MAF ≥ 1%) that no arm used as input. 
   - souporcell_gpu CPU (8 threads, Xeon 6736P): 14 min 57 s cluster, 10 min 18 s troublet.
   - Same optimum: ARI 0.999 on 16,889 shared singlets; status agreement 0.985.
   - Rust souporcell still running after > 1.5 h (15121108).
+
+## 2026-10-11: A09 genome-wide scores (all 31 targets)
+
+A09g was rerun as v2 (`results/A09_multiome/score_v2/`; `score/` is v1 without the new columns). New columns:
+- `af_r2`: r² of DS = 2 × panel RAF, i.e. no donor information. Aggregate r² pools sites of different allele
+  frequency, so this baseline already scores about 0.61 at untyped sites. Judge imputation by `r2_gain = r2 - af_r2`.
+- non-ref recall / precision;
+- `frac_nonref_not_in_panel`: WGS non-ref genotypes at sites absent from the 1000G panel. These are unreachable
+  by imputation: 3.7% of non-ref genotypes.
+
+Genome-wide (22 chr), donor = all:
+
+| target | typed r² (naive) | untyped r² | AF baseline | untyped non-ref conc |
+|---|---|---|---|---|
+| all_multi | 0.979 (0.779) | **0.955** | 0.606 | 0.901 |
+| all_atac | 0.978 (0.773) | 0.955 | 0.607 | 0.902 |
+| all_gex | 0.957 (0.763) | 0.750 | 0.609 | 0.572 |
+| per pool multi (9) | 0.79–0.93 | 0.79–0.91 | 0.609 | 0.62–0.82 |
+| per pool atac (10) | 0.79–0.92 | 0.79–0.91 | 0.609 | 0.62–0.81 |
+| per pool gex (9) | 0.75–0.95 | 0.67–0.73 | 0.608 | 0.46–0.54 |
+
+- **ATAC carries everything.** all_atac and all_multi are identical; GEX adds nothing measurable on top of ATAC.
+  GEX alone, even pooled over 9 libraries, gains only 0.14 over the AF baseline at untyped sites; per pool it gains
+  0.06–0.12. This matches the OneK1K no-go and the A07j spacing result.
+- **Pooling a donor across libraries helps.** Per-pool multi untyped 0.79–0.91 → 0.955 pooled over 10 libraries.
+  ys3d is the weakest pool (0.79), and it was also the weakest in typed r² (0.79).
+- By MAF bin (all_multi, untyped): 0.84 (< 1%; non-ref recall 0.67), 0.93 (1–5%), 0.96 (5–10%), 0.96 (10–20%),
+  0.94 (20–50%).
+- Donors agree: untyped 0.948 (C39) to 0.961 (C37).
+- Caveats:
+  - aggregate r² over 4 donors, not per-variant;
+  - truth = sites in the 51-sample joint WGS VCF (FT = PASS, GQ ≥ 20);
+  - the panel cannot reach 3.7% of non-ref genotypes.
+
+A09f Rust souporcell 2.4 (8 threads, Xeon Gold 6240; a different CPU from the souporcell_gpu CPU run):
+- 283 min cluster + 87 min troublet;
+- best log-prob −22,009,274, vs GPU −22,008,342 and souporcell_gpu CPU −22,008,498.
+
+Not yet done:
+- (c) consistency of a donor's imputed genotypes across pools / time points. The per-pool DS files exist, so this is
+  a pairwise r² between the per-pool targets of the same donor.
+- ATAC-only vs multiome at per-variant resolution: needs more donors than 4.

@@ -1,6 +1,13 @@
 # Progress
 
-## Status (2026-10-10): A09 souporcell done and mapped to donors; imputation + scoring running
+## Status (2026-10-11): A09 scored genome-wide: multiome/ATAC imputation works, GEX alone does not
+
+> **2026-10-11:** all 31 A09 targets scored (A09g v2, `score_v2/`). Pooled over all libraries, ATAC (= multiome)
+> gives untyped aggregate r² **0.955** vs an AF-only baseline of 0.61 (non-ref concordance 0.90; < 1% MAF 0.84).
+> GEX pooled gives 0.75. One pool alone: ATAC 0.79–0.91, GEX 0.67–0.73. GEX adds nothing on top of ATAC. Pooling a
+> donor across libraries lifts 0.79–0.91 → 0.955. The A09f Rust run finished: 283 min vs 1 min 19 s on GPU, same
+> optimum. Next: cross-pool consistency of each donor's imputed genotypes. JOURNAL 10-11.
+
 
 **Decision (user, 2026-10-09):** GEX-only imputation will not get much further (untyped per-variant r² 0.27-0.28,
 below the 0.4 bar; A07j shows marker spacing caps it). The ATAC / multiome test is A09, on the user's own data.

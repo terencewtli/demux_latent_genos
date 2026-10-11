@@ -11,7 +11,12 @@ Metrics, per donor x class x panel-MAF bin (RAF from GLIMPSE2), accumulated over
             convention; with only 4 donors a per-variant r2 is not meaningful)
   conc      hard-call (round DS) concordance; nonref_conc = concordance where the WGS or the call is non-ref
   naive_r2  typed only: dosage from the target PL argmax (no imputation) at the same pairs
-Outputs: results/A09_multiome/score/<target>/{sums.tsv, metrics.tsv}
+  af_r2     baseline r2 of DS = 2 x panel RAF (no donor information). Aggregate r2 pools sites of different allele
+            frequency, so even this predictor scores well; imputation should be judged by r2 - af_r2
+  nonref_recall     P(call > 0 | WGS non-ref); nonref_precision P(WGS non-ref | call > 0)
+Also counts WGS non-ref genotypes at sites not in the imputed (panel) output: class 'not_in_panel', which imputation
+cannot recover (frac_nonref_not_in_panel in metrics, per donor and overall).
+Outputs: results/A09_multiome/score_v2/<target>/{sums.tsv, metrics.tsv}   (v1 = score/, without these columns)
 usage: python scripts/A09g_score.py --target all_multi
 """
 from __future__ import annotations
@@ -47,7 +52,7 @@ def chrom_sums(target: str, chrom: str) -> pd.DataFrame:
     W = query(['-r', chrom, '-i', 'TYPE="snp" && N_ALT=1', '-s', ','.join(DONORS),
                '-f', '%CHROM\t%POS\t%REF\t%ALT[\t%GT:%GQ:%FT]\n', WGS],
               ['chrom', 'pos', 'ref', 'alt', *[f'w_{d}' for d in DONORS]])
-    m = I.merge(W, on=['chrom', 'pos', 'ref', 'alt']).merge(T, on=['chrom', 'pos', 'ref', 'alt'], how='left')
+    m = W.merge(I, on=['chrom', 'pos', 'ref', 'alt'], how='left').merge(T, on=['chrom', 'pos', 'ref', 'alt'], how='left')
     m['maf'] = np.minimum(m.raf, 1 - m.raf)
     m['bin'] = pd.cut(m.maf, BINS, labels=LABELS, include_lowest=True)
     out = []
@@ -55,9 +60,13 @@ def chrom_sums(target: str, chrom: str) -> pd.DataFrame:
         p = m[f'w_{d}'].str.split(':', expand=True)
         gt = p[0].str.replace('|', '/', regex=False)
         ok = (p[2] == 'PASS') & (pd.to_numeric(p[1], errors='coerce') >= MIN_GQ) & gt.isin(['0/0', '0/1', '1/0', '1/1'])
-        x = m.loc[ok, ['bin', f'ds_{d}', f'tg_{d}']].copy()
+        x = m.loc[ok, ['bin', 'raf', f'ds_{d}', f'tg_{d}']].copy()
         x['y'] = gt[ok].str.count('1').astype(float)
         x['ds'] = x[f'ds_{d}'].astype(float)
+        out.append({'chrom': chrom, 'donor': d, 'cls': 'not_in_panel', 'bin': 'all', 'n': int(x.ds.isna().sum()),
+                    'n_y_nr': int((x.ds.isna() & (x.y > 0)).sum())})
+        x = x[x.ds.notna()].copy()
+        x['af'] = 2 * x.raf.astype(float)
         tg = x[f'tg_{d}'].fillna('0:0,0,0').str.split(':', expand=True)
         x['typed'] = pd.to_numeric(tg[0], errors='coerce').fillna(0) > 0
         pl = tg[1].str.split(',', expand=True).apply(pd.to_numeric, errors='coerce').values
@@ -68,7 +77,10 @@ def chrom_sums(target: str, chrom: str) -> pd.DataFrame:
             nr = (g.y > 0) | (g.call > 0)
             r = {'chrom': chrom, 'donor': d, 'cls': cls, 'bin': b, 'n': len(g), 'sx': g.ds.sum(), 'sy': g.y.sum(),
                  'sxx': (g.ds ** 2).sum(), 'syy': (g.y ** 2).sum(), 'sxy': (g.ds * g.y).sum(),
-                 'n_conc': int((g.call == g.y).sum()), 'n_nr': int(nr.sum()), 'n_nr_conc': int((nr & (g.call == g.y)).sum())}
+                 'n_conc': int((g.call == g.y).sum()), 'n_nr': int(nr.sum()), 'n_nr_conc': int((nr & (g.call == g.y)).sum()),
+                 'asx': g.af.sum(), 'asxx': (g.af ** 2).sum(), 'asxy': (g.af * g.y).sum(),
+                 'n_y_nr': int((g.y > 0).sum()), 'n_y_nr_called': int(((g.y > 0) & (g.call > 0)).sum()),
+                 'n_call_nr': int((g.call > 0).sum()), 'n_call_nr_true': int(((g.call > 0) & (g.y > 0)).sum())}
             if cls == 'typed':
                 r.update({'nsx': g.naive.sum(), 'nsxx': (g.naive ** 2).sum(), 'nsxy': (g.naive * g.y).sum(),
                       'n_naive_conc': int((g.naive == g.y).sum())})
@@ -83,21 +95,35 @@ def r2(n: pd.Series, sx: pd.Series, sy: pd.Series, sxx: pd.Series, syy: pd.Serie
 
 
 def metrics(S: pd.DataFrame, keys: list[str]) -> pd.DataFrame:
+    nip = S[S.cls == 'not_in_panel']
+    S = S[S.cls != 'not_in_panel']
     g = S.groupby(keys, observed=True).sum(numeric_only=True).reset_index()
     g['r2'] = r2(g.n, g.sx, g.sy, g.sxx, g.syy, g.sxy)
+    g['af_r2'] = r2(g.n, g.asx, g.sy, g.asxx, g.syy, g.asxy)
+    g['r2_gain'] = g.r2 - g.af_r2
+    g['nonref_recall'] = g.n_y_nr_called / g.n_y_nr
+    g['nonref_precision'] = g.n_call_nr_true / g.n_call_nr
+    if 'bin' not in keys:                     # share of WGS non-ref genotypes that imputation cannot reach
+        dk = [k for k in keys if k in ('target', 'donor')]
+        a = nip.groupby(dk).n_y_nr.sum().rename('nr_out') if dk else pd.Series({0: nip.n_y_nr.sum()})
+        b = S.groupby(dk).n_y_nr.sum().rename('nr_in') if dk else pd.Series({0: S.n_y_nr.sum()})
+        f = (a / (a + b)).rename('frac_nonref_not_in_panel')
+        g = g.merge(f.reset_index(), on=dk, how='left') if dk else g.assign(frac_nonref_not_in_panel=f.iloc[0])
     g['conc'] = g.n_conc / g.n
     g['nonref_conc'] = g.n_nr_conc / g.n_nr
     if 'nsx' in g:
         g['naive_r2'] = np.where(g.cls == 'typed', r2(g.n, g.nsx, g.sy, g.nsxx, g.syy, g.nsxy), np.nan)
         g['naive_conc'] = np.where(g.cls == 'typed', g.n_naive_conc / g.n, np.nan)
-    return g[[*keys, 'n', 'r2', 'conc', 'nonref_conc', *[c for c in ['naive_r2', 'naive_conc'] if c in g]]]
+    cols = ['n', 'r2', 'af_r2', 'r2_gain', 'conc', 'nonref_conc', 'nonref_recall', 'nonref_precision',
+            'naive_r2', 'naive_conc', 'frac_nonref_not_in_panel']
+    return g[[*keys, *[c for c in cols if c in g]]]
 
 
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument('--target', required=True)
     a = p.parse_args()
-    out = f'{PROJ}/results/A09_multiome/score/{a.target}'
+    out = f'{PROJ}/results/A09_multiome/score_v2/{a.target}'
     os.makedirs(out, exist_ok=True)
     parts = []
     for c in range(1, 23):
