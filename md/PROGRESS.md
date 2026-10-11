@@ -1,5 +1,14 @@
 # Progress
 
+## PAUSED (user, 2026-10-11)
+
+The method question is answered: multiome / ATAC imputation of latent genotypes works (A09: untyped r² 0.955 vs
+AF baseline 0.61; A09h consistency), GEX alone does not (no-go 2026-10-09). Nothing downstream is possible on the
+data in hand: the reprogramming multiome has only 4 donors, and there is no population-scale multiome with genotypes
+here (do not search for one without the user). Only open option: a short methods note (ATAC imputes, GEX doesn't;
+pool reads before imputing; errors are pool-specific). Restart only if the user brings population-scale
+multiome / scATAC data.
+
 ## Status (2026-10-11): A09 scored genome-wide: multiome/ATAC imputation works, GEX alone does not
 
 > **2026-10-11:** all 31 A09 targets scored (A09g v2, `score_v2/`). Pooled over all libraries, ATAC (= multiome)

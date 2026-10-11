@@ -1090,3 +1090,7 @@ Genome-wide, 22 chromosomes:
 
 Code note: the consistency r² over all 4 donors is AF-inflated like A09g's r² (the WGS vs WGS line, 0.42, is the
 unrelated floor).
+
+## 2026-10-11: project paused (user)
+- Paused after A09 / A09h: the method works on multiome / ATAC, GEX-only is a no-go, and with 4 donors there is no
+  downstream genetics to run. Restart condition and the methods-note option are in PROGRESS.md.
