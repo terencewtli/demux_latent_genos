@@ -1053,3 +1053,40 @@ Not yet done:
 - (c) consistency of a donor's imputed genotypes across pools / time points. The per-pool DS files exist, so this is
   a pairwise r² between the per-pool targets of the same donor.
 - ATAC-only vs multiome at per-variant resolution: needs more donors than 4.
+
+## 2026-10-11 (later): A09h cross-pool consistency
+
+Each pool holds all 4 donors at different time points, so each donor has 9–10 independent imputations of the same
+germline genome (one per pool target).
+- `A09h_consistency.py`: per modality × chromosome; job 15128479, 66 tasks.
+- `A09h_summarize.py`: job 15128480.
+- Outputs: `results/A09_multiome/consistency/`.
+
+Genome-wide, 22 chromosomes:
+
+| mod | same donor, pool vs pool r² | hard-call disc. (non-ref disc.) | one of the two is right | different donors, imputed r² | WGS vs WGS r² |
+|---|---|---|---|---|---|
+| multi | **0.848** | 7.3% (30.7%) | 97.7% | 0.480 | 0.423 |
+| atac | 0.844 | 7.5% (31.6%) | 97.5% | 0.482 | 0.423 |
+| gex | 0.899 | 6.6% (28.1%) | 95.0% | **0.728** | 0.423 |
+
+- **Errors are pool-specific, not shared** (multi).
+  - When two pools disagree, one of them matches WGS 97.7% of the time.
+  - Of WGS non-ref genotypes, 41% are called right in all 9 pools, and only 1.2% are wrong in all 9.
+  - GEX is the opposite: 20% of non-ref genotypes are wrong in all 9 pools, i.e. systematic. With almost no
+    reads, every pool falls back to the same panel prior.
+- **Consistency is not accuracy.** GEX pools agree with each other more (0.90) than ATAC pools do (0.84). But GEX
+  imputations of *different* donors also agree (0.73 vs 0.48 for ATAC), because they share the prior.
+  - The useful number is the same-donor minus different-donor gap: ATAC / multi 0.37, GEX 0.17.
+- **Pool reads, then impute; don't average imputations.**
+  - vs WGS (multi): one pool alone 0.882; mean of the 9 per-pool DS 0.949; reads pooled, then imputed (all_multi)
+    **0.968**.
+  - Same ordering for ATAC (0.876 / 0.945 / 0.968) and GEX (0.702 / 0.736 / 0.760).
+- **Time:** same-donor r² falls with the time-point gap between pools (Spearman ρ −0.28 multi, p 7e-4; −0.50 GEX).
+  Pairs within the same series (D0–D7 = ys3a–e; D9–D18 = ys3f–j) agree more: 0.861 vs 0.838 (multi).
+  - The genome doesn't change, so this is most likely shared coverage: similar cell states open similar regions,
+    and series were likely processed together.
+  - Not tested: whether the trend remains at sites untyped in both pools.
+
+Code note: the consistency r² over all 4 donors is AF-inflated like A09g's r² (the WGS vs WGS line, 0.42, is the
+unrelated floor).

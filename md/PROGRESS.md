@@ -6,7 +6,15 @@
 > gives untyped aggregate r² **0.955** vs an AF-only baseline of 0.61 (non-ref concordance 0.90; < 1% MAF 0.84).
 > GEX pooled gives 0.75. One pool alone: ATAC 0.79–0.91, GEX 0.67–0.73. GEX adds nothing on top of ATAC. Pooling a
 > donor across libraries lifts 0.79–0.91 → 0.955. The A09f Rust run finished: 283 min vs 1 min 19 s on GPU, same
-> optimum. Next: cross-pool consistency of each donor's imputed genotypes. JOURNAL 10-11.
+> optimum. JOURNAL 10-11.
+>
+> **2026-10-11 (later), A09h cross-pool consistency:**
+> - Same-donor pool-vs-pool r² 0.85 (ATAC / multi) vs 0.48 between different donors.
+> - Errors are pool-specific: when two pools disagree, one is right 97.7% of the time, and 1.2% of non-ref
+>   genotypes are wrong in every pool.
+> - GEX pools agree via the shared panel prior (different-donor r² 0.73), so consistency ≠ accuracy.
+> - Pooling reads before imputation (0.968) beats averaging per-pool imputations (0.949) and one pool (0.882).
+> - Agreement falls with the time gap between pools, most likely through shared coverage.
 
 
 **Decision (user, 2026-10-09):** GEX-only imputation will not get much further (untyped per-variant r² 0.27-0.28,
